@@ -1,0 +1,1125 @@
+{
+  "version": 8,
+  "name": "OpenSkiMap Overlay",
+  "glyphs": "{TILES_BASE_URL}/assets/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "ski_source": {
+      "type": "vector",
+      "url": "pmtiles://{TILES_BASE_URL}/openskimap.pmtiles",
+      "attribution": "OpenSkiMap.org"
+    }
+  },
+  "layers": [
+    {
+      "id": "ski-areas",
+      "type": "fill",
+      "source": "ski_source",
+      "source-layer": "ski_areas_multipolygon",
+      "paint": {
+        "fill-color": "#7fc97f",
+        "fill-opacity": 0.1
+      }
+    },
+    {
+      "id": "ski-runs-alpine-polygons",
+      "type": "fill",
+      "source": "ski_source",
+      "source-layer": "runs_multipolygon",
+      "filter": [
+        "all",
+        [
+          "has",
+          "difficulty"
+        ]
+      ],
+      "minzoom": 12,
+      "paint": {
+        "fill-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "fill-opacity": [
+          "case",
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "abandoned",
+                "disused",
+                "never_opened"
+              ]
+            ]
+          ],
+          0.08,
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "construction",
+                "planned",
+                "proposed"
+              ]
+            ]
+          ],
+          0.12,
+          0.18
+        ],
+        "fill-outline-color": [
+          "rgba",
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-alpine-casing",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "!=",
+        [
+          "get",
+          "uses"
+        ],
+        "nordic"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round",
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-color": "#ffffff",
+        "line-opacity": [
+          "*",
+          [
+            "case",
+            [
+              "in",
+              [
+                "get",
+                "status"
+              ],
+              [
+                "literal",
+                [
+                  "abandoned",
+                  "disused",
+                  "never_opened"
+                ]
+              ]
+            ],
+            0.35,
+            [
+              "in",
+              [
+                "get",
+                "status"
+              ],
+              [
+                "literal",
+                [
+                  "construction",
+                  "planned",
+                  "proposed"
+                ]
+              ]
+            ],
+            0.55,
+            0.85
+          ],
+          0.9
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          1.8,
+          9,
+          2.8,
+          12,
+          4.0,
+          14,
+          5.0
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-alpine",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "!=",
+        [
+          "get",
+          "uses"
+        ],
+        "nordic"
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round",
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "line-opacity": [
+          "case",
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "abandoned",
+                "disused",
+                "never_opened"
+              ]
+            ]
+          ],
+          0.35,
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "construction",
+                "planned",
+                "proposed"
+              ]
+            ]
+          ],
+          0.55,
+          0.85
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-alpine-connection",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "all",
+        [
+          "has",
+          "uses"
+        ],
+        [
+          "in",
+          "connection",
+          [
+            "get",
+            "uses"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round",
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "line-opacity": [
+          "case",
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "abandoned",
+                "disused",
+                "never_opened"
+              ]
+            ]
+          ],
+          0.35,
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "construction",
+                "planned",
+                "proposed"
+              ]
+            ]
+          ],
+          0.55,
+          0.85
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            2,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-alpine-sled",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "all",
+        [
+          "has",
+          "uses"
+        ],
+        [
+          "in",
+          "sled",
+          [
+            "get",
+            "uses"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round",
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "line-opacity": [
+          "case",
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "abandoned",
+                "disused",
+                "never_opened"
+              ]
+            ]
+          ],
+          0.35,
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "construction",
+                "planned",
+                "proposed"
+              ]
+            ]
+          ],
+          0.55,
+          0.85
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-alpine-nordic",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "all",
+        [
+          "has",
+          "uses"
+        ],
+        [
+          "in",
+          "nordic",
+          [
+            "get",
+            "uses"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round",
+        "visibility": "visible"
+      },
+      "paint": {
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "line-opacity": [
+          "case",
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "abandoned",
+                "disused",
+                "never_opened"
+              ]
+            ]
+          ],
+          0.35,
+          [
+            "in",
+            [
+              "get",
+              "status"
+            ],
+            [
+              "literal",
+              [
+                "construction",
+                "planned",
+                "proposed"
+              ]
+            ]
+          ],
+          0.55,
+          0.85
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            1.5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-labels",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "minzoom": 13,
+      "filter": [
+        "all",
+        [
+          "has",
+          "name"
+        ]
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "get",
+          "name"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          10,
+          14,
+          12
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-rotation-alignment": "map",
+        "text-keep-upright": false,
+        "text-max-angle": 30,
+        "text-letter-spacing": 0.05,
+        "text-padding": 2
+      },
+      "paint": {
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2,
+        "text-color": "#2c3e50",
+        "text-opacity": 0.9
+      }
+    },
+    {
+      "id": "ski-runs-nordic",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "filter": [
+        "==",
+        [
+          "get",
+          "uses"
+        ],
+        "nordic"
+      ],
+      "layout": {
+        "line-join": "round"
+      },
+      "paint": {
+        "line-width": 2,
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#3498db",
+            "easy",
+            "#3498db",
+            "intermediate",
+            "#e74c3c",
+            "advanced",
+            "#2c3e50",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "#2ecc71",
+            "easy",
+            "#2ecc71",
+            "intermediate",
+            "#3498db",
+            "advanced",
+            "#e74c3c",
+            "expert",
+            "#2c3e50",
+            "extreme",
+            "#2c3e50",
+            "freeride",
+            "#f39c12",
+            "#95a5a6"
+          ]
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            3,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-lifts-line",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "lifts_linestring",
+      "paint": {
+        "line-color": "#333",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.9,
+          9,
+          1.6,
+          12,
+          2.6,
+          14,
+          3.6
+        ]
+      },
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      }
+    },
+    {
+      "id": "ski-lifts-labels",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "lifts_linestring",
+      "minzoom": 13,
+      "filter": [
+        "any",
+        [
+          "has",
+          "name"
+        ],
+        [
+          "has",
+          "ref"
+        ]
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name"
+          ],
+          [
+            "get",
+            "ref"
+          ]
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          10,
+          14,
+          12
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-rotation-alignment": "map",
+        "text-keep-upright": false,
+        "text-max-angle": 30,
+        "text-letter-spacing": 0.04,
+        "text-padding": 2
+      },
+      "paint": {
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.4,
+        "text-color": "#2c3e50",
+        "text-opacity": 0.9
+      }
+    },
+    {
+      "id": "ski-lifts-icons",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "lifts_linestring",
+      "minzoom": 13,
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": 150,
+        "icon-image": [
+          "match",
+          [
+            "get",
+            "lift_type"
+          ],
+          "gondola",
+          "ski-gondola",
+          "cable_car",
+          "ski-cable-car",
+          "chair_lift",
+          [
+            "case",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              1
+            ],
+            "ski-chairlift-1",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              2
+            ],
+            "ski-chairlift-2",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              3
+            ],
+            "ski-chairlift-3",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              4
+            ],
+            "ski-chairlift-4",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              6
+            ],
+            "ski-chairlift-6",
+            [
+              "==",
+              [
+                "get",
+                "occupancy"
+              ],
+              8
+            ],
+            "ski-chairlift-8",
+            "ski-chairlift-2"
+          ],
+          "funicular",
+          "ski-funicular",
+          "magic_carpet",
+          "ski-magic-carpet",
+          "rope_tow",
+          "ski-rope-tow",
+          "t-bar",
+          "ski-drag-lift-tbar",
+          "t_bar",
+          "ski-drag-lift-tbar",
+          "j-bar",
+          "ski-drag-lift-tbar",
+          "j_bar",
+          "ski-drag-lift-tbar",
+          "platter",
+          "ski-drag-lift-platter",
+          "drag_lift",
+          "ski-drag-lift-tbar",
+          "ski-gondola"
+        ],
+        "icon-size": 0.7,
+        "icon-allow-overlap": false,
+        "icon-ignore-placement": true
+      }
+    },
+    {
+      "id": "ski-labels",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "runs_linestring",
+      "minzoom": 14,
+      "layout": {
+        "text-field": [
+          "get",
+          "name"
+        ],
+        "text-font": [
+          "Arial Regular"
+        ],
+        "text-size": 10,
+        "symbol-placement": "line",
+        "text-offset": [
+          0,
+          1
+        ]
+      },
+      "paint": {
+        "text-color": "#333",
+        "text-halo-color": "#fff",
+        "text-halo-width": 1.5
+      }
+    }
+  ],
+  "sprite": "{TILES_BASE_URL}/assets/sprites/openskimap/sprite"
+}

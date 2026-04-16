@@ -1,0 +1,93 @@
+{
+  "ski-cable-car": {
+    "width": 48,
+    "height": 48,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-1": {
+    "width": 48,
+    "height": 48,
+    "x": 48,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-2": {
+    "width": 48,
+    "height": 48,
+    "x": 96,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-3": {
+    "width": 48,
+    "height": 48,
+    "x": 144,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-4": {
+    "width": 48,
+    "height": 48,
+    "x": 0,
+    "y": 48,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-6": {
+    "width": 48,
+    "height": 48,
+    "x": 48,
+    "y": 48,
+    "pixelRatio": 1
+  },
+  "ski-chairlift-8": {
+    "width": 48,
+    "height": 48,
+    "x": 96,
+    "y": 48,
+    "pixelRatio": 1
+  },
+  "ski-drag-lift-platter": {
+    "width": 48,
+    "height": 48,
+    "x": 144,
+    "y": 48,
+    "pixelRatio": 1
+  },
+  "ski-drag-lift-tbar": {
+    "width": 48,
+    "height": 48,
+    "x": 0,
+    "y": 96,
+    "pixelRatio": 1
+  },
+  "ski-funicular": {
+    "width": 48,
+    "height": 48,
+    "x": 48,
+    "y": 96,
+    "pixelRatio": 1
+  },
+  "ski-gondola": {
+    "width": 48,
+    "height": 48,
+    "x": 96,
+    "y": 96,
+    "pixelRatio": 1
+  },
+  "ski-magic-carpet": {
+    "width": 48,
+    "height": 48,
+    "x": 144,
+    "y": 96,
+    "pixelRatio": 1
+  },
+  "ski-rope-tow": {
+    "width": 48,
+    "height": 48,
+    "x": 0,
+    "y": 144,
+    "pixelRatio": 1
+  }
+}

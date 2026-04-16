@@ -1,0 +1,17 @@
+# Data and Build directories
+build/
+dist/
+tmp/
+src/
+
+# GeoData files
+*.gpkg
+*.pmtiles
+
+# Local configuration
+scripts/config.env
+
+# System files
+.DS_Store
+.npm/
+node_modules/
