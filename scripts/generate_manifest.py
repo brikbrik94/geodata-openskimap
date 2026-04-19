@@ -16,8 +16,8 @@ STYLES_DIR = os.path.join(DIST_DIR, "styles")
 ASSETS_DIR = os.path.join(DIST_DIR, "assets")
 SPRITES_DIST_DIR = os.path.join(ASSETS_DIR, "sprites", "openskimap")
 
-# Quellen
-BUILD_TMP_DIR = os.path.join(PROJECT_ROOT, "build", "tmp")
+# Quellen (Migriert auf v1.2 Standard)
+WORK_DIR = os.path.join(PROJECT_ROOT, "work")
 STYLE_SRC = os.path.join(PROJECT_ROOT, "styles", "openskimap-style.json")
 SPRITES_SRC = os.path.join(PROJECT_ROOT, "assets", "sprites", "openskimap")
 
@@ -31,7 +31,7 @@ def format_size(size_bytes):
     return f"{s} {size_name[i]}"
 
 def generate_manifest():
-    log_info("Generating Manifest according to Plugin-Standard...")
+    log_info("Generating Manifest according to Plugin-Standard (v1.2)...")
     
     # Verzeichnisse sicherstellen
     for d in [PMTILES_DIR, STYLES_DIR, SPRITES_DIST_DIR]:
@@ -39,7 +39,7 @@ def generate_manifest():
 
     # 1. PMTiles kopieren
     pmtiles_filename = "openskimap.pmtiles"
-    pmtiles_src = os.path.join(BUILD_TMP_DIR, pmtiles_filename)
+    pmtiles_src = os.path.join(WORK_DIR, pmtiles_filename)
     pmtiles_rel_path = f"pmtiles/{pmtiles_filename}"
     
     if os.path.exists(pmtiles_src):
@@ -47,7 +47,7 @@ def generate_manifest():
         size = format_size(os.stat(pmtiles_src).st_size)
         log_success(f"Copied data: {pmtiles_filename} ({size})")
     else:
-        log_error(f"Source PMTiles not found: {pmtiles_src}")
+        log_error(f"Source PMTiles not found in work directory: {pmtiles_src}")
         sys.exit(1)
 
     # 2. Style kopieren
@@ -76,6 +76,7 @@ def generate_manifest():
         "id": "openskimap",
         "type": "overlay",
         "source": "openskimap",
+        "sprite_id": "openskimap",
         "name": "OpenSkiMap",
         "style_path": style_rel_path,
         "pmtiles_path": pmtiles_rel_path
@@ -84,10 +85,15 @@ def generate_manifest():
     manifest = {
         "version": "1.0",
         "project": "geodata-openskimap",
-        "generated_at": datetime.now().isoformat() + "Z",
+        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "datasets": [dataset],
         "resources": {
-            "sprites": ["assets/sprites/openskimap/sprite"],
+            "sprites": [
+                {
+                    "id": "openskimap",
+                    "path": "assets/sprites/openskimap"
+                }
+            ],
             "fonts": []
         }
     }

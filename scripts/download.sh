@@ -12,7 +12,7 @@ fi
 
 log_header "DOWNLOAD: OPENSKIMAP"
 
-BASE_DIR="build"
+BASE_DIR="data"
 SRC_DIR="$BASE_DIR/src"
 
 # 2. Verzeichnis sicherstellen

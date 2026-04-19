@@ -22,7 +22,7 @@ if ! bash "$SCRIPT_DIR/check_dependencies.sh"; then
 fi
 
 # Verzeichnisse initialisieren
-mkdir -p build/tmp dist
+mkdir -p data/src work dist logs
 
 # --- PHASE 2: INGEST ---
 log_header "PHASE 2: INGEST (DOWNLOAD)"

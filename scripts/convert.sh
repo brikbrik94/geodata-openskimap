@@ -14,9 +14,9 @@ fi
 
 log_header "CONVERT: OPENSKIMAP -> PMTILES"
 
-BASE_DIR="$REPO_DIR/build"
-SRC_DIR="$BASE_DIR/src"
-TMP_DIR="$BASE_DIR/tmp"
+BASE_DIR="$REPO_DIR"
+SRC_DIR="$BASE_DIR/data/src"
+TMP_DIR="$BASE_DIR/work"
 
 # 2. Pfade definieren
 INPUT_FILE="$SRC_DIR/openskidata.gpkg"
