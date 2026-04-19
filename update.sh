@@ -1,55 +1,53 @@
 #!/bin/bash
-# Zentrales Update-Skript für OpenSkiMap
-# Wird vom Hauptsystem aufgerufen.
-set -e
+# Zentrales Update-Skript für OpenSkiMap (Standard v1.1)
+set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$REPO_DIR"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$PROJECT_ROOT/scripts"
 
-# 1. Config & Utils laden
-if [ -f "scripts/utils.sh" ]; then
-    source "scripts/utils.sh"
+# 1. CI Utils laden
+if [ -f "$SCRIPT_DIR/ci/utils.sh" ]; then
+    source "$SCRIPT_DIR/ci/utils.sh"
 else
-    echo "❌ Fehler: scripts/utils.sh nicht gefunden!"
+    echo "❌ Fehler: scripts/ci/utils.sh nicht gefunden!"
     exit 1
 fi
 
-log_header "OpenSkiMap Update"
-
-# 2. Download der Daten
-bash scripts/download.sh
-
-# 3. Konvertierung zu PMTiles
-bash scripts/convert.sh
-
-# 4. Finalisierung für das Deployment (dist/ Ordner)
-log_section "DEPLOYMENT: Finalisierung..."
-
-# Config erneut laden für Pfade
-if [ -f "scripts/config.env" ]; then
-    source "scripts/config.env"
-fi
-BASE_DIR="${SKIMAP_BUILD_DIR:-build}"
-TMP_DIR="$BASE_DIR/tmp"
-
-# PMTiles in den dist-Ordner schieben
-mkdir -p dist/pmtiles
-if [ -f "$TMP_DIR/openskimap.pmtiles" ]; then
-    log_info "Kopiere PMTiles nach dist/pmtiles/..."
-    cp "$TMP_DIR/openskimap.pmtiles" dist/pmtiles/openskimap.pmtiles
-else
-    log_error "PMTiles nicht gefunden: $TMP_DIR/openskimap.pmtiles"
+# --- PHASE 1: PRE-FLIGHT ---
+log_header "PHASE 1: PRE-FLIGHT CHECK"
+log_step 1 4 "Checking dependencies..."
+if ! bash "$SCRIPT_DIR/check_dependencies.sh"; then
+    log_error "Voraussetzungen nicht erfüllt. Abbruch."
     exit 1
 fi
 
-# Stylesheet kopieren
-log_info "Kopiere Styles nach dist/styles/..."
-mkdir -p dist/styles
-cp styles/openskimap-style.json dist/styles/openskimap-style.json
+# Verzeichnisse initialisieren
+mkdir -p build/tmp dist
 
-# Sprites kopieren
-log_info "Kopiere Sprites nach dist/assets/sprites/openskimap/..."
-mkdir -p dist/assets/sprites/openskimap
-cp assets/sprites/openskimap/* dist/assets/sprites/openskimap/
+# --- PHASE 2: INGEST ---
+log_header "PHASE 2: INGEST (DOWNLOAD)"
+log_step 2 4 "Downloading OpenSkiMap data..."
+if ! bash "$SCRIPT_DIR/download.sh"; then
+    log_error "Download fehlgeschlagen."
+    exit 1
+fi
 
-log_success "OpenSkiMap Plugin erfolgreich aktualisiert und in dist/ bereitgestellt."
+# --- PHASE 3: PROCESSING ---
+log_header "PHASE 3: PROCESSING (CONVERT)"
+log_step 3 4 "Converting to PMTiles..."
+if ! bash "$SCRIPT_DIR/convert.sh"; then
+    log_error "Konvertierung fehlgeschlagen."
+    exit 1
+fi
+
+# --- PHASE 4: FINALIZE ---
+log_header "PHASE 4: FINALIZE (MANIFEST)"
+log_step 4 4 "Generating manifest and deploying to dist/..."
+if python3 "$SCRIPT_DIR/generate_manifest.py"; then
+    log_success "Build erfolgreich abgeschlossen. Ergebnis in dist/"
+else
+    log_error "Manifest-Generierung fehlgeschlagen."
+    exit 1
+fi
+
+log_header "UPDATE ERFOLGREICH ABGESCHLOSSEN"

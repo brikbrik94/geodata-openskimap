@@ -1,18 +1,20 @@
 #!/bin/bash
 set -euo pipefail
 
-# 1. Utils & Config laden
+# 1. CI Utils laden
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/utils.sh" ]; then
-    source "$SCRIPT_DIR/utils.sh"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [ -f "$SCRIPT_DIR/ci/utils.sh" ]; then
+    source "$SCRIPT_DIR/ci/utils.sh"
 else
-    echo "❌ Fehler: utils.sh nicht gefunden!"
+    echo "❌ Fehler: scripts/ci/utils.sh nicht gefunden!"
     exit 1
 fi
 
-log_section "CONVERT: OPENSKIMAP -> PMTILES (Original Layer Names)"
+log_header "CONVERT: OPENSKIMAP -> PMTILES"
 
-BASE_DIR="${SKIMAP_BUILD_DIR:-$OVERLAYS_BUILD_DIR/openskimap}"
+BASE_DIR="$REPO_DIR/build"
 SRC_DIR="$BASE_DIR/src"
 TMP_DIR="$BASE_DIR/tmp"
 
@@ -30,8 +32,6 @@ mkdir -p "$TMP_DIR"
 cd "$TMP_DIR"
 
 # 3. Extraktion der Layer (GeoJSONSeq für Tippecanoe)
-# Wir behalten hier kurze Dateinamen für das TMP-Verzeichnis,
-# das Mapping auf die echten Namen erfolgt erst im nächsten Schritt.
 log_info "Extrahiere Layer aus GeoPackage..."
 
 ogr2ogr -f GeoJSONSeq areas_p.jsonseq    "$INPUT_FILE" ski_areas_point
@@ -41,9 +41,7 @@ ogr2ogr -f GeoJSONSeq runs_poly.jsonseq  "$INPUT_FILE" runs_multipolygon
 ogr2ogr -f GeoJSONSeq runs_line.jsonseq  "$INPUT_FILE" runs_linestring
 
 # 4. Konvertierung mit Tippecanoe
-# Hier nutzen wir -L "OriginalName:Datei", damit die Layer im PMTiles
-# exakt so heißen wie im GPKG.
-log_info "Erstelle PMTiles: $OUTPUT_PMTILES"
+log_info "Erstelle PMTiles: $(get_rel_path "$OUTPUT_PMTILES" "$REPO_DIR")"
 
 tippecanoe -o "$OUTPUT_PMTILES" --force \
   --minimum-zoom=0 --maximum-zoom=14 \
@@ -59,4 +57,4 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
 log_info "Bereinige temporäre JSON-Dateien..."
 rm -f *.jsonseq
 
-log_success "OpenSkimap PMTiles erfolgreich erstellt (Layer-Namen beibehalten)."
+log_success "OpenSkimap PMTiles erfolgreich erstellt."

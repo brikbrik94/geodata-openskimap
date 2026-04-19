@@ -2,6 +2,20 @@
 
 Dieses Dokument dient als interaktive Roadmap für den Umbau der OpenSkiMap-Verarbeitung in ein eigenständiges Plugin-Repository.
 
+## 0. Voraussetzungen & Abhängigkeiten
+
+Das Projekt benötigt folgende Programme:
+*   `aria2c`
+*   `ogr2ogr` (GDAL)
+*   `tippecanoe`
+
+Eine detaillierte Liste mit Installationshinweisen findest du in [docs/dependencies.md](docs/dependencies.md).
+
+Die Abhängigkeiten werden beim Start von `update.sh` automatisch geprüft. Alternativ kann die Prüfung manuell aufgerufen werden:
+```bash
+bash scripts/ci/check_dependencies.sh
+```
+
 ## 1. Zukünftiger Standard (Ziel)
 Ein spezialisiertes Plugin, das GeoPackages verarbeitet, Layer mit Tippecanoe präzise benennt und eigene Ski-Symbole (Sprites) mitliefert.
 
@@ -12,7 +26,9 @@ geodata-openskimap/
 ├── scripts/                  # Übernommene Skripte
 │   ├── download.sh           # GPKG Download (aria2c --conditional-get)
 │   ├── convert.sh            # OGR2OGR & Tippecanoe Logik
-│   └── utils.sh              # Hilfsfunktionen
+│   └── ci/                   # Standard CI-Utilities
+│       ├── utils.sh          # Bash-Hilfsfunktionen (CI)
+│       └── utils.py          # Python-Hilfsfunktionen (CI)
 ├── assets/
 │   └── sprites/
 │       └── openskimap/       # Die Ski-spezifischen Symbole
@@ -29,7 +45,7 @@ geodata-openskimap/
 Folgende Dateien wurden aus dem alten System in den Ordner `code/` kopiert:
 *   `download_openskimap.sh`
 *   `convert_openskimap_pmtiles.sh`
-*   `utils.sh`
+*   `ci/utils.sh` (CI Standard)
 *   `styles/openskimap-style.json`
 *   `assets/sprites/` (noch leer)
 

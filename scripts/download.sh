@@ -1,23 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
-# 1. Utils & Config laden
+# 1. CI Utils laden
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/utils.sh" ]; then
-    source "$SCRIPT_DIR/utils.sh"
+if [ -f "$SCRIPT_DIR/ci/utils.sh" ]; then
+    source "$SCRIPT_DIR/ci/utils.sh"
 else
-    echo "❌ Fehler: utils.sh nicht gefunden!"
+    echo "❌ Fehler: scripts/ci/utils.sh nicht gefunden!"
     exit 1
 fi
 
 log_header "DOWNLOAD: OPENSKIMAP"
 
-BASE_DIR="${SKIMAP_BUILD_DIR:-$OVERLAYS_BUILD_DIR/openskimap}"
+BASE_DIR="build"
 SRC_DIR="$BASE_DIR/src"
 
 # 2. Verzeichnis sicherstellen
+# Wir arbeiten relativ zum Projekt-Root
+cd "$SCRIPT_DIR/.."
 mkdir -p "$SRC_DIR"
-cd "$SRC_DIR"
 
 # 3. Download mit aria2c (Timestamp-Prüfung)
 URL="https://tiles.openskimap.org/openskidata.gpkg"
