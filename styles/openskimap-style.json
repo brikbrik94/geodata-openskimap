@@ -1151,6 +1151,706 @@
         ],
         "text-opacity": 0.9
       }
+    },
+    {
+      "id": "ski-runs-nordic-casing",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "lit"
+            ],
+            true
+          ],
+          "hsl(63, 100%, 76%)",
+          "hsl(0, 0%, 100%)"
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          1.8,
+          9,
+          2.8,
+          12,
+          4.0,
+          14,
+          5.0
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-nordic-line",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "filter": [
+        "all",
+        [
+          "!=",
+          [
+            "get",
+            "gladed"
+          ],
+          true
+        ],
+        [
+          "match",
+          [
+            "get",
+            "grooming"
+          ],
+          [
+            "backcountry",
+            "mogul"
+          ],
+          false,
+          true
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-nordic-gladed",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "filter": [
+        "==",
+        [
+          "get",
+          "gladed"
+        ],
+        true
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            0.1,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-nordic-ungroomed",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "filter": [
+        "match",
+        [
+          "get",
+          "grooming"
+        ],
+        [
+          "backcountry",
+          "mogul"
+        ],
+        true,
+        false
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.8,
+          9,
+          1.4,
+          12,
+          2.2,
+          14,
+          3.0
+        ],
+        "line-dasharray": [
+          "literal",
+          [
+            2,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ski-runs-nordic-fill",
+      "type": "fill",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "paint": {
+        "fill-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
+        "fill-opacity": 0.25
+      }
+    },
+    {
+      "id": "ski-runs-nordic-snowmaking",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "minzoom": 11,
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "snowmaking"
+          ],
+          true
+        ],
+        [
+          "==",
+          [
+            "get",
+            "snowfarming"
+          ],
+          true
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "rgba(196, 251, 255, 0.9)",
+        "line-width": 1.5
+      }
+    },
+    {
+      "id": "ski-runs-nordic-labels",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "ski_runs_nordic",
+      "minzoom": 13,
+      "filter": [
+        "has",
+        "name"
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "get",
+          "name"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          10,
+          14,
+          12
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-rotation-alignment": "map",
+        "text-keep-upright": false,
+        "text-max-angle": 30,
+        "text-letter-spacing": 0.05,
+        "text-padding": 2
+      },
+      "paint": {
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2,
+        "text-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
+        "text-opacity": 0.9
+      }
     }
   ],
   "sprite": "{TILES_BASE_URL}/assets/sprites/openskimap/sprite"
