@@ -152,6 +152,17 @@ different source-layer/filter):
 `assets/sprites/openskimap` output and `pmtiles://{TILES_BASE_URL}/...` —
 no change to how those are wired into `dist/`.
 
+### Known limitations
+
+`gladed`, `lit`, `snowmaking`, and `snowfarming` are uniformly `false`/absent
+across the entire current OpenSkiMap GeoPackage (verified by direct SQLite
+inspection) — an upstream data characteristic, not a bug here. The style
+layers keyed off them (`ski-runs-*-gladed`, `ski-runs-*-snowmaking`, and the
+`lit`-based yellow casing color in `ski-runs-*-casing`/`ski-lifts-casing`)
+are correctly built and will start rendering automatically once upstream
+populates these fields — they're just not visually exercisable with today's
+data, so don't expect to see their effect during a manual visual check.
+
 ## Verification
 
 - `bash scripts/convert.sh` end-to-end against the already-downloaded
