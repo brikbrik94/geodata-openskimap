@@ -815,22 +815,32 @@
       "source-layer": "ski_runs_alpine",
       "minzoom": 11,
       "filter": [
-        "any",
+        "all",
         [
-          "==",
+          "any",
           [
-            "get",
-            "snowmaking"
+            "==",
+            [
+              "get",
+              "snowmaking"
+            ],
+            true
           ],
-          true
+          [
+            "==",
+            [
+              "get",
+              "snowfarming"
+            ],
+            true
+          ]
         ],
         [
           "==",
           [
-            "get",
-            "snowfarming"
+            "geometry-type"
           ],
-          true
+          "LineString"
         ]
       ],
       "layout": {
@@ -1277,22 +1287,32 @@
       "source-layer": "ski_runs_nordic",
       "minzoom": 11,
       "filter": [
-        "any",
+        "all",
         [
-          "==",
+          "any",
           [
-            "get",
-            "snowmaking"
+            "==",
+            [
+              "get",
+              "snowmaking"
+            ],
+            true
           ],
-          true
+          [
+            "==",
+            [
+              "get",
+              "snowfarming"
+            ],
+            true
+          ]
         ],
         [
           "==",
           [
-            "get",
-            "snowfarming"
+            "geometry-type"
           ],
-          true
+          "LineString"
         ]
       ],
       "layout": {
