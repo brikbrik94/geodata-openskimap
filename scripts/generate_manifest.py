@@ -8,6 +8,8 @@ import shutil
 sys.path.append(os.path.join(os.path.dirname(__file__), "ci"))
 from utils import log_info, log_success, log_warn, log_error
 
+from generate_layer_list import generate_layer_list
+
 # --- KONFIGURATION ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DIST_DIR = os.path.join(PROJECT_ROOT, "dist")
@@ -101,8 +103,20 @@ def generate_manifest():
     manifest_file = os.path.join(DIST_DIR, "manifest.json")
     with open(manifest_file, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
-    
+
     log_success(f"Manifest saved to: {manifest_file}")
+
+    # 5. Layer-Liste erstellen (Plugin-Standard v1.4, §5)
+    layer_list_file = os.path.join(DIST_DIR, "layer-list.json")
+    style_dist_path = os.path.join(STYLES_DIR, style_filename)
+    if os.path.exists(style_dist_path):
+        layer_list = generate_layer_list(
+            style_dist_path, layer_list_file,
+            dataset["id"], dataset["name"], pmtiles_filename,
+        )
+        log_success(f"Layer-list saved to: {layer_list_file} ({len(layer_list['styles'][0]['groups'])} Gruppen)")
+    else:
+        log_warn(f"Style nicht gefunden, überspringe layer-list.json: {style_dist_path}")
 
 if __name__ == "__main__":
     generate_manifest()
