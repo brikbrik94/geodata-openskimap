@@ -23,20 +23,59 @@ mkdir -p "$SRC_DIR"
 # 3. Download mit aria2c (Timestamp-Prüfung)
 URL="https://tiles.openskimap.org/openskidata.gpkg"
 FILENAME="openskidata.gpkg"
-
-log_info "Prüfe auf neue OpenSkimap-Daten..."
+LOCAL_FILE="$SRC_DIR/$FILENAME"
 
 if ! command -v aria2c >/dev/null 2>&1; then
     log_error "aria2c nicht gefunden. Bitte installieren."
     exit 1
 fi
 
-# --conditional-get prüft Last-Modified und lädt nur bei Updates
-if aria2c --conditional-get=true -x16 -s16 -c -d "$SRC_DIR" -o "$FILENAME" "$URL"; then
-    log_success "Download erfolgreich oder Datei bereits aktuell."
-else
+# Bei einem mehrfach segmentierten Download (-x/-s) kann eine parallele
+# Serveraktualisierung mitten im Transfer dazu führen, dass einzelne
+# Segmente aus unterschiedlichen Dateiversionen stammen. Das Ergebnis ist
+# eine strukturell ungültige GeoPackage-Datei (SQLite: "malformed database
+# schema"). ogrinfo kann das per Schema-Lesezugriff erkennen, ohne die
+# komplette Datei einzulesen.
+validate_gpkg() {
+    local file="$1"
+    if ! command -v ogrinfo >/dev/null 2>&1; then
+        return 0
+    fi
+    # `|| status=$?` haelt den Fehlschlag in einer Bedingung, damit
+    # `set -e` hier nicht sofort abbricht.
+    local status=0
+    ogrinfo -q "$file" >/dev/null 2>&1 || status=$?
+    # ogrinfo/sqlite kann beim Öffnen einer WAL-Datenbank -wal/-shm
+    # Begleitdateien anlegen; die gehören nicht zum Download-Ergebnis.
+    rm -f "${file}-wal" "${file}-shm"
+    return "$status"
+}
+
+download_gpkg() {
+    aria2c --conditional-get=true -x16 -s16 -c -d "$SRC_DIR" -o "$FILENAME" "$URL"
+}
+
+log_info "Prüfe auf neue OpenSkimap-Daten..."
+
+if ! download_gpkg; then
     log_error "Fehler beim Download von $URL"
     exit 1
 fi
 
-log_info "Speicherort: $SRC_DIR/$FILENAME"
+if ! validate_gpkg "$LOCAL_FILE"; then
+    log_warn "Datei beschädigt (ungültiges GeoPackage-Schema). Starte Neu-Download..."
+    rm -f "$LOCAL_FILE"
+    if ! download_gpkg; then
+        log_error "Fehler beim Download von $URL"
+        exit 1
+    fi
+    if ! validate_gpkg "$LOCAL_FILE"; then
+        log_error "GeoPackage weiterhin beschädigt auch nach Neu-Download: $LOCAL_FILE"
+        exit 1
+    fi
+    log_success "Neu-Download erfolgreich, Datei ist valide."
+else
+    log_success "Download erfolgreich oder Datei bereits aktuell."
+fi
+
+log_info "Speicherort: $LOCAL_FILE"
