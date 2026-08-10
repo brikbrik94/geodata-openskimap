@@ -69,6 +69,12 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
   --minimum-zoom=0 --maximum-zoom=14 \
   --drop-densest-as-needed \
   --extend-zooms-if-still-dropping \
+  -x elevation_profile_heights \
+  -x elevation_profile_resolution \
+  -x sources \
+  -x websites \
+  -x wikidata_id \
+  -x ref_fr_cairn \
   -L "ski_areas_alpine:ski_areas_alpine.jsonseq" \
   -L "ski_areas_nordic:ski_areas_nordic.jsonseq" \
   -L "ski_runs_alpine:ski_runs_alpine.jsonseq" \
