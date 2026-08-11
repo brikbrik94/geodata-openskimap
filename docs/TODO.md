@@ -21,24 +21,6 @@ openskimap.org verifiziert (nicht geraten):
   Lücken unten sind strukturell (welche Layer/Kategorien es gibt), nicht bei
   den Farbwerten selbst.
 
-## Lift-Status visuell unterscheiden (operating vs. alles andere)
-
-Echtes Stylesheet, zwei Layer statt unserer einen:
-
-- `operating-lift`: Filter `status == operating AND access != private`.
-  Durchgezogen, `line-opacity: 0.8`.
-- `other-lift`: Filter `status != operating` (deckt proposed/planned/
-  construction/disused/abandoned in einem Rutsch ab). **Gestrichelt
-  `line-dasharray: [1, 3]`**, dünner (`line-width` Faktor ~0.66 von operating).
-
-Bei uns (`styles/openskimap-style.json`, `ski-lifts-line`) rendern
-`operating`/`proposed`/`planned`/`construction` alle identisch, durchgezogen.
-
-Beispiel: `feature_id=84b8d675587243994b24ee9b7e0aa4629a6e54f6`
-("Steyrsbergerreithbahn", `status=proposed`, `lift_type=gondola`).
-
-Betrifft `ski-lifts-line`/`ski-lifts-line-private`/`ski-lifts-casing`.
-
 ## Pisten-Kategorien: downhill / nordic / skitour / other statt nur alpine/nordic
 
 Echtes Stylesheet nutzt **vier** Kategorien pro Lauf-Feature (nicht zwei wie
@@ -94,11 +76,6 @@ Hängt mit dem Punkt oben zusammen — beim Überarbeiten der Pisten-Kategorien
 gleich mitentscheiden, ob/wie stark `ski-runs-nordic-line` etc. vereinfacht
 werden.
 
-## Ausrichtung der Sprites prüfen
-
-Sprite-Ausrichtung (Icons) aktuell nicht korrekt — genauer eingrenzen,
-welche Icons/Layer betroffen sind und was konkret falsch ausgerichtet ist.
-
 ## Versionierung & CHANGELOG.md einführen (oe5ith-coding-rules §4)
 
 `oe5ith-coding-rules/AGENT_INSTRUCTIONS.md` §4 verlangt eine zentrale
@@ -107,8 +84,8 @@ strukturiertes `CHANGELOG.md` mit datierten `[Unreleased]`-Journal-Blöcken.
 Beides existiert in diesem Repo aktuell nicht.
 
 Bewusst zurückgestellt (Entscheidung 2026-08-11): erst die übrigen offenen
-Punkte in dieser Datei abarbeiten (Lift-Status, Pisten-Kategorien,
-Nordic-Einfärbung, Sprite-Ausrichtung — `datetime.utcnow()` bereits erledigt,
+Punkte in dieser Datei abarbeiten (Pisten-Kategorien, Nordic-Einfärbung —
+`datetime.utcnow()`, Lift-Status, Sprite-Ausrichtung bereits erledigt,
 siehe `docs/TODO_ARCHIVE.md`), danach daraus die erste Version schneiden
 (Versionskonstante festlegen, `CHANGELOG.md` mit diesem Stand als erstem
 Eintrag anlegen) statt jetzt schon rückwirkend eine Changelog-Historie zu
