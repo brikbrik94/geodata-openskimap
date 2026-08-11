@@ -10,7 +10,7 @@ Das Projekt ist für den Einsatz auf **Linux-Systemen** (vorzugsweise Debian-bas
 
 ### 1. Bash (v4.0+)
 Die zentrale Orchestrierung erfolgt über Bash-Skripte.
-- **Zweck:** Ausführung von `update.sh`, `download.sh` und `convert.sh`.
+- **Zweck:** Ausführung von `setup.sh`, `run.sh`, `update.sh`, `download.sh` und `convert.sh`.
 - **Installation (Debian/Ubuntu):** Standardmäßig installiert.
 
 ### 2. aria2c
@@ -38,6 +38,6 @@ Wird aktuell für die Hilfsfunktionen in `scripts/ci/utils.py` bereitgehalten, a
 
 Die Abhängigkeiten können automatisch geprüft werden:
 ```bash
-bash scripts/ci/check_dependencies.sh
+bash scripts/check_dependencies.sh
 ```
-Diese Prüfung wird auch automatisch beim Start von `update.sh` ausgeführt.
+Diese Prüfung wird auch automatisch beim Start von `setup.sh`, `run.sh` und `update.sh` ausgeführt.

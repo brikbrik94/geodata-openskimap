@@ -1,10 +1,10 @@
-# Data and Build directories
-build/
+# Data and Build directories (build output / scratch space, see CLAUDE.md)
+data/
+work/
 dist/
-tmp/
-src/
+logs/
 
-# GeoData files
+# GeoData files (defense-in-depth, falls eine Datei außerhalb der obigen Ordner landet)
 *.gpkg
 *.pmtiles
 

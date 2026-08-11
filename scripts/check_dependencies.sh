@@ -31,7 +31,7 @@ check_command "ogr2ogr" "GDAL/ogr2ogr"
 check_command "tippecanoe" "Tippecanoe"
 
 if [ $MISSING_DEPS -ne 0 ]; then
-    log_error "Einige Abhängigkeiten fehlen. Bitte die Dokumentation unter docs/dependencies.md lesen."
+    log_error "Einige Abhängigkeiten fehlen. Bitte die Dokumentation unter DEPENDENCIES.md lesen."
     exit 1
 else
     log_success "Alle erforderlichen Abhängigkeiten sind installiert."

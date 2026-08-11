@@ -12,17 +12,25 @@ fi
 
 log_header "DOWNLOAD: OPENSKIMAP"
 
+# 2. Datenquelle laden (siehe sources/openskimap.env)
+SOURCE_ENV="$SCRIPT_DIR/../sources/openskimap.env"
+if [ ! -f "$SOURCE_ENV" ]; then
+    log_error "Quellen-Definition nicht gefunden: $SOURCE_ENV"
+    exit 1
+fi
+source "$SOURCE_ENV"
+
 BASE_DIR="data"
 SRC_DIR="$BASE_DIR/src"
 
-# 2. Verzeichnis sicherstellen
+# 3. Verzeichnis sicherstellen
 # Wir arbeiten relativ zum Projekt-Root
 cd "$SCRIPT_DIR/.."
 mkdir -p "$SRC_DIR"
 
-# 3. Download mit aria2c (Timestamp-Prüfung)
-URL="https://tiles.openskimap.org/openskidata.gpkg"
-FILENAME="openskidata.gpkg"
+# 4. Download mit aria2c (Timestamp-Prüfung)
+URL="$OPENSKIMAP_URL"
+FILENAME="$OPENSKIMAP_FILENAME"
 LOCAL_FILE="$SRC_DIR/$FILENAME"
 
 if ! command -v aria2c >/dev/null 2>&1; then

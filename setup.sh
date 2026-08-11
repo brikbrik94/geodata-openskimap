@@ -1,4 +1,6 @@
 #!/bin/bash
+# Initialisierung & Abhängigkeitsprüfung (Standard v1.4 §1, Einstiegspunkt
+# 1 von 3 neben run.sh/update.sh).
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

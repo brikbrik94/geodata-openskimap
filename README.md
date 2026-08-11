@@ -9,11 +9,11 @@ Das Projekt benötigt folgende Programme:
 *   `ogr2ogr` (GDAL)
 *   `tippecanoe`
 
-Eine detaillierte Liste mit Installationshinweisen findest du in [docs/dependencies.md](docs/dependencies.md).
+Eine detaillierte Liste mit Installationshinweisen findest du in [DEPENDENCIES.md](DEPENDENCIES.md).
 
-Die Abhängigkeiten werden beim Start von `update.sh` automatisch geprüft. Alternativ kann die Prüfung manuell aufgerufen werden:
+Die Abhängigkeiten werden beim Start von `setup.sh`, `run.sh` und `update.sh` automatisch geprüft. Alternativ kann die Prüfung manuell aufgerufen werden:
 ```bash
-bash scripts/ci/check_dependencies.sh
+bash scripts/check_dependencies.sh
 ```
 
 ## 1. Zukünftiger Standard (Ziel)
@@ -22,19 +22,28 @@ Ein spezialisiertes Plugin, das GeoPackages verarbeitet, Layer mit Tippecanoe pr
 ### Erwartete Verzeichnisstruktur im Zielzustand:
 ```text
 geodata-openskimap/
-├── update.sh                 # Zentraler Einstiegspunkt
+├── setup.sh                  # Initialisierung & Abhängigkeitsprüfung
+├── run.sh                    # Kompletter Build-Durchlauf (erzwingt Update)
+├── update.sh                 # Intelligenter Orchestrator (prüft auf Änderungen vor run.sh)
+├── DEPENDENCIES.md
+├── sources/                  # Definition der Datenquellen
+│   └── openskimap.env
 ├── scripts/                  # Übernommene Skripte
+│   ├── check_dependencies.sh
 │   ├── download.sh           # GPKG Download (aria2c --conditional-get)
 │   ├── convert.sh            # OGR2OGR & Tippecanoe Logik
+│   ├── generate_manifest.py
 │   └── ci/                   # Standard CI-Utilities
 │       ├── utils.sh          # Bash-Hilfsfunktionen (CI)
-│       └── utils.py          # Python-Hilfsfunktionen (CI)
+│       ├── utils.py          # Python-Hilfsfunktionen (CI)
+│       └── run_logger.sh     # JSONL Run-Logging
 ├── assets/
 │   └── sprites/
 │       └── openskimap/       # Die Ski-spezifischen Symbole
 ├── styles/                   # Das MapLibre Stylesheet (openskimap-style.json)
 └── dist/                     # Das fertige Ausgabeverzeichnis
     ├── manifest.json         # Deployment-Steuerung
+    ├── layer-list.json       # Layer-Metadaten für Legenden-Rendering
     ├── pmtiles/              # Die fertige openskimap.pmtiles
     ├── styles/               # Das finale Stylesheet
     └── assets/
