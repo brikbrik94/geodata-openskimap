@@ -180,7 +180,91 @@
       "source": "ski_source",
       "source-layer": "ski_runs_nordic_poly",
       "paint": {
-        "fill-color": "hsl(200, 30%, 85%)",
+        "fill-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "fill-opacity": 0.25
       }
     },
@@ -860,7 +944,91 @@
       "source": "ski_source",
       "source-layer": "ski_runs_skitour_poly",
       "paint": {
-        "fill-color": "hsl(280, 70%, 55%)",
+        "fill-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "fill-opacity": 0.25
       }
     },
@@ -874,7 +1042,91 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": "hsl(280, 70%, 55%)",
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "line-width": [
           "interpolate",
           [
@@ -907,7 +1159,91 @@
       "source": "ski_source",
       "source-layer": "ski_runs_other_poly",
       "paint": {
-        "fill-color": "hsl(0, 0%, 45%)",
+        "fill-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "fill-opacity": 0.25
       }
     },
@@ -921,7 +1257,91 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": "hsl(0, 0%, 45%)",
+        "line-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "line-width": [
           "interpolate",
           [
@@ -1688,7 +2108,91 @@
       "paint": {
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.2,
-        "text-color": "hsl(280, 70%, 55%)",
+        "text-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "text-opacity": 0.9
       }
     },
@@ -1733,7 +2237,91 @@
       "paint": {
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.2,
-        "text-color": "hsl(0, 0%, 45%)",
+        "text-color": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "europe"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
+        ],
         "text-opacity": 0.9
       }
     },
