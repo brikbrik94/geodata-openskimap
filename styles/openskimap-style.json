@@ -1280,7 +1280,15 @@
           14,
           5.0
         ]
-      }
+      },
+      "filter": [
+        "==",
+        [
+          "get",
+          "status"
+        ],
+        "operating"
+      ]
     },
     {
       "id": "ski-lifts-line",
@@ -1328,15 +1336,103 @@
           2.2,
           14,
           3.0
+        ],
+        "line-opacity": 0.8
+      },
+      "filter": [
+        "all",
+        [
+          "!=",
+          [
+            "get",
+            "access"
+          ],
+          "private"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "status"
+          ],
+          "operating"
+        ]
+      ]
+    },
+    {
+      "id": "ski-lifts-line-other",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_lifts",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "match",
+          [
+            "get",
+            "status"
+          ],
+          "operating",
+          "hsl(0, 82%, 42%)",
+          "proposed",
+          "hsl(0, 82%, 42%)",
+          "planned",
+          "hsl(0, 82%, 42%)",
+          "construction",
+          "hsl(0, 82%, 42%)",
+          "disused",
+          "hsl(0, 53%, 42%)",
+          "abandoned",
+          "hsl(0, 53%, 42%)",
+          "hsl(0, 53%, 42%)"
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.53,
+          9,
+          0.92,
+          12,
+          1.45,
+          14,
+          1.98
+        ],
+        "line-opacity": 0.8,
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            3
+          ]
         ]
       },
       "filter": [
-        "!=",
+        "all",
         [
-          "get",
-          "access"
+          "!=",
+          [
+            "get",
+            "access"
+          ],
+          "private"
         ],
-        "private"
+        [
+          "!=",
+          [
+            "get",
+            "status"
+          ],
+          "operating"
+        ]
       ]
     },
     {
@@ -1386,6 +1482,7 @@
           14,
           3.0
         ],
+        "line-opacity": 0.8,
         "line-dasharray": [
           "literal",
           [
@@ -1395,12 +1492,99 @@
         ]
       },
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "access"
+          "==",
+          [
+            "get",
+            "access"
+          ],
+          "private"
         ],
-        "private"
+        [
+          "==",
+          [
+            "get",
+            "status"
+          ],
+          "operating"
+        ]
+      ]
+    },
+    {
+      "id": "ski-lifts-line-private-other",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_lifts",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "match",
+          [
+            "get",
+            "status"
+          ],
+          "operating",
+          "hsl(0, 82%, 42%)",
+          "proposed",
+          "hsl(0, 82%, 42%)",
+          "planned",
+          "hsl(0, 82%, 42%)",
+          "construction",
+          "hsl(0, 82%, 42%)",
+          "disused",
+          "hsl(0, 53%, 42%)",
+          "abandoned",
+          "hsl(0, 53%, 42%)",
+          "hsl(0, 53%, 42%)"
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.53,
+          9,
+          0.92,
+          12,
+          1.45,
+          14,
+          1.98
+        ],
+        "line-opacity": 0.8,
+        "line-dasharray": [
+          "literal",
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "access"
+          ],
+          "private"
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "status"
+          ],
+          "operating"
+        ]
       ]
     },
     {

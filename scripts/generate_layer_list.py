@@ -65,7 +65,9 @@ GROUP_MAP = {
     "ski-spots": "ski-spots",
     "ski-lifts-casing": "ski-lifts",
     "ski-lifts-line": "ski-lifts",
+    "ski-lifts-line-other": "ski-lifts",
     "ski-lifts-line-private": "ski-lifts",
+    "ski-lifts-line-private-other": "ski-lifts",
     "ski-lifts-labels": "ski-lifts",
     "ski-lifts-icons": "ski-lifts",
 }
