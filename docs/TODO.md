@@ -114,3 +114,18 @@ datetimes in UTC: datetime.datetime.now(datetime.UTC).
 Fix: `datetime.now(datetime.UTC).strftime(...)` statt `datetime.utcnow().strftime(...)`.
 Beim Restrukturierungs-Build (2026-08-11, `update.sh`/`run.sh`-Einführung) entdeckt,
 außerhalb des dortigen Scopes, daher nur dokumentiert statt mitgefixt.
+
+## Versionierung & CHANGELOG.md einführen (oe5ith-coding-rules §4)
+
+`oe5ith-coding-rules/AGENT_INSTRUCTIONS.md` §4 verlangt eine zentrale
+Versionskonstante als Single Source of Truth sowie ein nach Keep-a-Changelog
+strukturiertes `CHANGELOG.md` mit datierten `[Unreleased]`-Journal-Blöcken.
+Beides existiert in diesem Repo aktuell nicht.
+
+Bewusst zurückgestellt (Entscheidung 2026-08-11): erst die übrigen offenen
+Punkte in dieser Datei abarbeiten (Lift-Status, Pisten-Kategorien,
+Nordic-Einfärbung, Sprite-Ausrichtung, `datetime.utcnow()`), danach daraus
+die erste Version schneiden (Versionskonstante festlegen, `CHANGELOG.md`
+mit diesem Stand als erstem Eintrag anlegen) statt jetzt schon rückwirkend
+eine Changelog-Historie zu konstruieren. Reihenfolge: TODO-Punkte zuerst,
+Versionierung/Changelog danach.
