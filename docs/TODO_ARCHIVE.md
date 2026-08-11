@@ -69,3 +69,30 @@ ohne dokumentierte Begründung — konnte zu kopfüber gerenderten Labels
 führen. Fix: auf `true` (MapLibre-Default, entspricht auch dem echten
 OpenSkiMap-Stylesheet, das dieses Feld für seinen analogen Layer nicht
 überschreibt).
+
+## Pisten-Kategorien: downhill / nordic / skitour / other statt nur alpine/nordic
+
+*Erledigt: 2026-08-11 (Sub-Projekt B, Spec
+`docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md`,
+Plan `docs/superpowers/plans/2026-08-11-run-category-taxonomy-plan.md`,
+Commit `feat(style): replace alpine/nordic run split with downhill/nordic/skitour/other`)*
+
+Echtes Stylesheet nutzte vier Kategorien pro Lauf-Feature (nicht zwei wie
+unser bisheriger Alpine/Nordic-Split). Beide dokumentierten Lücken behoben:
+Rodelbahn (`feature_id=3d4a993682eda4d6b4b318d83fc3178819d74d0e`, `uses=sled`)
+und Winterwanderweg (`feature_id=62ad174f8ac9d72c286582fd5d680ba007ea795f`,
+`uses=hike`) landen jetzt beide sichtbar gestrichelt in der neuen
+`other`-Kategorie statt unmarkiert im alten Alpine-Katalog. Mehrfachnutzung
+mit parallel versetzten Linien (`line-offset`) bewusst nicht nachgebaut —
+siehe `docs/ROADMAP.md`.
+
+## Loipen (nordic) nicht nach Schwierigkeit einfärben
+
+*Erledigt: 2026-08-11 (Sub-Projekt B, selber Commit wie oben)*
+
+OpenSkiMap färbt `nordic-runs` nicht nach Schwierigkeit (nur casing-artiges
+Weiß/gelb bei `lit`). Die 1:1 von Alpine gespiegelte Schwierigkeitsfarblogik
+auf `ski-runs-nordic-*` wurde durch die `case lit`-Expression vom echten
+Stylesheet ersetzt (Fill/Line/Ungroomed). Beispiel:
+`feature_id=6a6a6f940d135a95cf034a6e7ca99563a5364bd0` (`uses=nordic`,
+`difficulty=null`).
