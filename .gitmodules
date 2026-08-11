@@ -1,0 +1,6 @@
+[submodule "oe5ith-coding-rules"]
+	path = oe5ith-coding-rules
+	url = git@github.com:brikbrik94/oe5ith-coding-rules.git
+[submodule "geodata-plugin-standard"]
+	path = geodata-plugin-standard
+	url = git@github.com:brikbrik94/geodata-plugin-standard.git
