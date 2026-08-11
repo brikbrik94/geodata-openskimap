@@ -1696,7 +1696,7 @@
           "Noto Sans Regular"
         ],
         "text-rotation-alignment": "map",
-        "text-keep-upright": false,
+        "text-keep-upright": true,
         "text-max-angle": 30,
         "text-letter-spacing": 0.05,
         "text-padding": 2
@@ -1825,7 +1825,7 @@
           "Noto Sans Regular"
         ],
         "text-rotation-alignment": "map",
-        "text-keep-upright": false,
+        "text-keep-upright": true,
         "text-max-angle": 30,
         "text-letter-spacing": 0.05,
         "text-padding": 2
@@ -1968,7 +1968,7 @@
           "Noto Sans Regular"
         ],
         "text-rotation-alignment": "map",
-        "text-keep-upright": false,
+        "text-keep-upright": true,
         "text-max-angle": 30,
         "text-letter-spacing": 0.04,
         "text-padding": 2
@@ -1989,6 +1989,7 @@
       "layout": {
         "symbol-placement": "line",
         "symbol-spacing": 150,
+        "icon-rotation-alignment": "viewport",
         "icon-image": [
           "match",
           [
