@@ -1,7 +1,7 @@
 import os
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 
 # Corporate Identity einbinden
@@ -87,7 +87,7 @@ def generate_manifest():
     manifest = {
         "version": "1.0",
         "project": "geodata-openskimap",
-        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "datasets": [dataset],
         "resources": {
             "sprites": [
