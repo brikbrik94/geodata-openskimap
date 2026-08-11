@@ -98,7 +98,17 @@ wohl nach Schwierigkeit (blau für "easy"), im Widerspruch zur statischen
 daraufhin wieder auf Schwierigkeitsfarbe umgestellt (Commit
 `fix(style): restore difficulty-based coloring for nordic line/ungroomed`).
 Nur `ski-runs-nordic-casing` blieb `lit`-basiert (wie `ski-runs-downhill-casing`
-auch). Ursprünglicher (überholter) Text unten, nicht mehr aktuell:
+auch).
+
+**Korrektur 2026-08-11, 19:45 Uhr: auch das war noch falsch — Farbe stand am
+falschen Layer.** Live-Test von Commit `ae5dadf` zeigte eine durchgängig
+einfarbige Linie ohne Rand-Kontrast. Root Cause (systematic-debugging): bei
+Loipen ist die visuelle Konvention gegenüber Pisten **umgekehrt** — der
+äußere Rand (`ski-runs-nordic-casing`) trägt die Schwierigkeitsfarbe, die
+innere Linie (`ski-runs-nordic-line`/`-ungroomed`) bleibt `lit`-basiert
+weiß/gelb. Farben entsprechend getauscht (Commit `fix(style): swap nordic
+casing/line colors — difficulty on casing, not line`). Ursprünglicher
+(überholter) Text unten, nicht mehr aktuell:
 
 OpenSkiMap färbt `nordic-runs` nicht nach Schwierigkeit (nur casing-artiges
 Weiß/gelb bei `lit`). Die 1:1 von Alpine gespiegelte Schwierigkeitsfarblogik

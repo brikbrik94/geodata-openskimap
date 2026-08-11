@@ -33,6 +33,22 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ("Loipen nicht nach Schwierigkeit einfärben"). `ski-runs-nordic-casing`
   bleibt bewusst `lit`-basiert — `ski-runs-downhill-casing` (das Vorbild)
   ist ebenfalls `lit`-basiert, nicht schwierigkeitsgefärbt.
+  *(Korrigiert durch den folgenden Eintrag: die Farbe stand am falschen
+  Layer — siehe unten.)*
+
+## [Unreleased] - 2026-08-11 19:45
+
+### Fixed
+- Schwierigkeitsfarbe bei Loipen stand am falschen Layer: `ski-runs-nordic-casing`
+  (Außenrand) und `ski-runs-nordic-line`/`-ungroomed` (Mittellinie) getauscht.
+  Root Cause per systematic-debugging nach Live-Test von Commit `ae5dadf`:
+  Auf OpenSkiMap ist die visuelle Konvention bei Loipen umgekehrt zu Pisten
+  — der **äußere Rand** trägt die Schwierigkeitsfarbe, die **innere Linie**
+  bleibt `lit`-basiert weiß/gelb (nicht umgekehrt wie bei Pisten). Das ist
+  die bewusste optische Unterscheidung Loipe vs. Piste, selbst bei gleicher
+  Schwierigkeits-Farbpalette. `ski-runs-nordic-casing` bekommt jetzt die
+  Schwierigkeits-Match-Expression, `ski-runs-nordic-line`/`-ungroomed` die
+  `lit`-Case-Expression zurück. Breiten/Dasharrays/Filter unverändert.
 
 ## [1.0.0] - 2026-08-11
 
