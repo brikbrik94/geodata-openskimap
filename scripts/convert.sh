@@ -33,29 +33,29 @@ log_info "Extrahiere Layer aus GeoPackage..."
 
 # Ski-Gebiete: nach 'activities' in Alpine/Nordic aufgeteilt.
 # Gemischte Gebiete (activities="downhill,nordic") landen in beiden Layern.
+# Punkt- und Polygon-Geometrie bleiben in getrennten Tippecanoe-Layern (wie vor
+# der Konsolidierung) - Mischgeometrie in einem Layer war nie beauftragt und
+# war die Ursache für zoomstufen-abhängig hüpfende Polygonkanten.
 ALPINE_AREA_WHERE="activities LIKE '%downhill%' OR activities NOT LIKE '%nordic%'"
 NORDIC_AREA_WHERE="activities LIKE '%nordic%'"
 
-ogr2ogr -f GeoJSONSeq areas_point_alpine.jsonseq "$INPUT_FILE" ski_areas_point -where "$ALPINE_AREA_WHERE"
-ogr2ogr -f GeoJSONSeq areas_poly_alpine.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$ALPINE_AREA_WHERE"
-ogr2ogr -f GeoJSONSeq areas_point_nordic.jsonseq "$INPUT_FILE" ski_areas_point -where "$NORDIC_AREA_WHERE"
-ogr2ogr -f GeoJSONSeq areas_poly_nordic.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$NORDIC_AREA_WHERE"
-cat areas_point_alpine.jsonseq areas_poly_alpine.jsonseq > ski_areas_alpine.jsonseq
-cat areas_point_nordic.jsonseq areas_poly_nordic.jsonseq > ski_areas_nordic.jsonseq
+ogr2ogr -f GeoJSONSeq ski_areas_alpine_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$ALPINE_AREA_WHERE"
+ogr2ogr -f GeoJSONSeq ski_areas_alpine_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$ALPINE_AREA_WHERE"
+ogr2ogr -f GeoJSONSeq ski_areas_nordic_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$NORDIC_AREA_WHERE"
+ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$NORDIC_AREA_WHERE"
 
 # Pisten/Loipen: nach 'uses' in Alpine/Nordic aufgeteilt.
 # Gemischte Nutzung (uses="downhill,nordic") landet in beiden Layern; alles was
 # nicht explizit nordic ist (downhill, skitour, connection, sled, hike, ...)
-# faellt in den Alpine-Layer.
+# faellt in den Alpine-Layer. Linien- und Polygon-Geometrie bleiben getrennt,
+# siehe Kommentar oben.
 ALPINE_RUN_WHERE="uses LIKE '%downhill%' OR uses NOT LIKE '%nordic%'"
 NORDIC_RUN_WHERE="uses LIKE '%nordic%'"
 
-ogr2ogr -f GeoJSONSeq runs_line_alpine.jsonseq "$INPUT_FILE" runs_linestring -where "$ALPINE_RUN_WHERE"
-ogr2ogr -f GeoJSONSeq runs_poly_alpine.jsonseq "$INPUT_FILE" runs_multipolygon -where "$ALPINE_RUN_WHERE"
-ogr2ogr -f GeoJSONSeq runs_line_nordic.jsonseq "$INPUT_FILE" runs_linestring -where "$NORDIC_RUN_WHERE"
-ogr2ogr -f GeoJSONSeq runs_poly_nordic.jsonseq "$INPUT_FILE" runs_multipolygon -where "$NORDIC_RUN_WHERE"
-cat runs_line_alpine.jsonseq runs_poly_alpine.jsonseq > ski_runs_alpine.jsonseq
-cat runs_line_nordic.jsonseq runs_poly_nordic.jsonseq > ski_runs_nordic.jsonseq
+ogr2ogr -f GeoJSONSeq ski_runs_alpine_line.jsonseq "$INPUT_FILE" runs_linestring -where "$ALPINE_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_alpine_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$ALPINE_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_nordic_line.jsonseq "$INPUT_FILE" runs_linestring -where "$NORDIC_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_nordic_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$NORDIC_RUN_WHERE"
 
 # Lifte: unveraendert, ein Layer
 ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring
@@ -75,10 +75,14 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
   -x websites \
   -x wikidata_id \
   -x ref_fr_cairn \
-  -L "ski_areas_alpine:ski_areas_alpine.jsonseq" \
-  -L "ski_areas_nordic:ski_areas_nordic.jsonseq" \
-  -L "ski_runs_alpine:ski_runs_alpine.jsonseq" \
-  -L "ski_runs_nordic:ski_runs_nordic.jsonseq" \
+  -L "ski_areas_alpine_point:ski_areas_alpine_point.jsonseq" \
+  -L "ski_areas_alpine_poly:ski_areas_alpine_poly.jsonseq" \
+  -L "ski_areas_nordic_point:ski_areas_nordic_point.jsonseq" \
+  -L "ski_areas_nordic_poly:ski_areas_nordic_poly.jsonseq" \
+  -L "ski_runs_alpine_line:ski_runs_alpine_line.jsonseq" \
+  -L "ski_runs_alpine_poly:ski_runs_alpine_poly.jsonseq" \
+  -L "ski_runs_nordic_line:ski_runs_nordic_line.jsonseq" \
+  -L "ski_runs_nordic_poly:ski_runs_nordic_poly.jsonseq" \
   -L "ski_lifts:ski_lifts.jsonseq" \
   -L "ski_spots:ski_spots.jsonseq"
 

@@ -14,7 +14,7 @@
       "id": "ski-areas-alpine-fill",
       "type": "fill",
       "source": "ski_source",
-      "source-layer": "ski_areas_alpine",
+      "source-layer": "ski_areas_alpine_poly",
       "paint": {
         "fill-color": "#3085fe",
         "fill-opacity": 0.1
@@ -24,7 +24,7 @@
       "id": "ski-areas-nordic-fill",
       "type": "fill",
       "source": "ski_source",
-      "source-layer": "ski_areas_nordic",
+      "source-layer": "ski_areas_nordic_poly",
       "paint": {
         "fill-color": "#2ecc71",
         "fill-opacity": 0.1
@@ -34,7 +34,7 @@
       "id": "ski-areas-alpine-circle",
       "type": "circle",
       "source": "ski_source",
-      "source-layer": "ski_areas_alpine",
+      "source-layer": "ski_areas_alpine_point",
       "maxzoom": 11,
       "paint": {
         "circle-color": "#3085fe",
@@ -53,20 +53,13 @@
         ],
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 1
-      },
-      "filter": [
-        "==",
-        [
-          "geometry-type"
-        ],
-        "Point"
-      ]
+      }
     },
     {
       "id": "ski-areas-nordic-circle",
       "type": "circle",
       "source": "ski_source",
-      "source-layer": "ski_areas_nordic",
+      "source-layer": "ski_areas_nordic_point",
       "maxzoom": 11,
       "paint": {
         "circle-color": "#2ecc71",
@@ -85,20 +78,13 @@
         ],
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 1
-      },
-      "filter": [
-        "==",
-        [
-          "geometry-type"
-        ],
-        "Point"
-      ]
+      }
     },
     {
       "id": "ski-runs-alpine-fill",
       "type": "fill",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_poly",
       "paint": {
         "fill-color": [
           "case",
@@ -192,7 +178,7 @@
       "id": "ski-runs-nordic-fill",
       "type": "fill",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_poly",
       "paint": {
         "fill-color": [
           "case",
@@ -286,7 +272,7 @@
       "id": "ski-runs-alpine-casing",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "layout": {
         "line-cap": "round",
         "line-join": "round"
@@ -322,20 +308,13 @@
           14,
           5.0
         ]
-      },
-      "filter": [
-        "==",
-        [
-          "geometry-type"
-        ],
-        "LineString"
-      ]
+      }
     },
     {
       "id": "ski-runs-nordic-casing",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "layout": {
         "line-cap": "round",
         "line-join": "round"
@@ -371,20 +350,13 @@
           14,
           5.0
         ]
-      },
-      "filter": [
-        "==",
-        [
-          "geometry-type"
-        ],
-        "LineString"
-      ]
+      }
     },
     {
       "id": "ski-runs-alpine-line",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "filter": [
         "all",
         [
@@ -407,13 +379,6 @@
           ],
           false,
           true
-        ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
         ]
       ],
       "layout": {
@@ -529,24 +494,14 @@
       "id": "ski-runs-alpine-gladed",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "filter": [
-        "all",
+        "==",
         [
-          "==",
-          [
-            "get",
-            "gladed"
-          ],
-          true
+          "get",
+          "gladed"
         ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
-        ]
+        true
       ],
       "layout": {
         "line-cap": "round",
@@ -668,29 +623,19 @@
       "id": "ski-runs-alpine-ungroomed",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "filter": [
-        "all",
+        "match",
         [
-          "match",
-          [
-            "get",
-            "grooming"
-          ],
-          [
-            "backcountry",
-            "mogul"
-          ],
-          true,
-          false
+          "get",
+          "grooming"
         ],
         [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
-        ]
+          "backcountry",
+          "mogul"
+        ],
+        true,
+        false
       ],
       "layout": {
         "line-cap": "round",
@@ -812,35 +757,25 @@
       "id": "ski-runs-alpine-snowmaking",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "minzoom": 11,
       "filter": [
-        "all",
+        "any",
         [
-          "any",
+          "==",
           [
-            "==",
-            [
-              "get",
-              "snowmaking"
-            ],
-            true
+            "get",
+            "snowmaking"
           ],
-          [
-            "==",
-            [
-              "get",
-              "snowfarming"
-            ],
-            true
-          ]
+          true
         ],
         [
           "==",
           [
-            "geometry-type"
+            "get",
+            "snowfarming"
           ],
-          "LineString"
+          true
         ]
       ],
       "layout": {
@@ -856,7 +791,7 @@
       "id": "ski-runs-nordic-line",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "filter": [
         "all",
         [
@@ -879,13 +814,6 @@
           ],
           false,
           true
-        ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
         ]
       ],
       "layout": {
@@ -1001,24 +929,14 @@
       "id": "ski-runs-nordic-gladed",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "filter": [
-        "all",
+        "==",
         [
-          "==",
-          [
-            "get",
-            "gladed"
-          ],
-          true
+          "get",
+          "gladed"
         ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
-        ]
+        true
       ],
       "layout": {
         "line-cap": "round",
@@ -1140,29 +1058,19 @@
       "id": "ski-runs-nordic-ungroomed",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "filter": [
-        "all",
+        "match",
         [
-          "match",
-          [
-            "get",
-            "grooming"
-          ],
-          [
-            "backcountry",
-            "mogul"
-          ],
-          true,
-          false
+          "get",
+          "grooming"
         ],
         [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "LineString"
-        ]
+          "backcountry",
+          "mogul"
+        ],
+        true,
+        false
       ],
       "layout": {
         "line-cap": "round",
@@ -1284,35 +1192,25 @@
       "id": "ski-runs-nordic-snowmaking",
       "type": "line",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "minzoom": 11,
       "filter": [
-        "all",
+        "any",
         [
-          "any",
+          "==",
           [
-            "==",
-            [
-              "get",
-              "snowmaking"
-            ],
-            true
+            "get",
+            "snowmaking"
           ],
-          [
-            "==",
-            [
-              "get",
-              "snowfarming"
-            ],
-            true
-          ]
+          true
         ],
         [
           "==",
           [
-            "geometry-type"
+            "get",
+            "snowfarming"
           ],
-          "LineString"
+          true
         ]
       ],
       "layout": {
@@ -1509,21 +1407,11 @@
       "id": "ski-areas-alpine-labels",
       "type": "symbol",
       "source": "ski_source",
-      "source-layer": "ski_areas_alpine",
+      "source-layer": "ski_areas_alpine_point",
       "minzoom": 10,
       "filter": [
-        "all",
-        [
-          "has",
-          "name"
-        ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "Point"
-        ]
+        "has",
+        "name"
       ],
       "layout": {
         "text-field": [
@@ -1557,21 +1445,11 @@
       "id": "ski-areas-nordic-labels",
       "type": "symbol",
       "source": "ski_source",
-      "source-layer": "ski_areas_nordic",
+      "source-layer": "ski_areas_nordic_point",
       "minzoom": 10,
       "filter": [
-        "all",
-        [
-          "has",
-          "name"
-        ],
-        [
-          "==",
-          [
-            "geometry-type"
-          ],
-          "Point"
-        ]
+        "has",
+        "name"
       ],
       "layout": {
         "text-field": [
@@ -1605,7 +1483,7 @@
       "id": "ski-runs-alpine-labels",
       "type": "symbol",
       "source": "ski_source",
-      "source-layer": "ski_runs_alpine",
+      "source-layer": "ski_runs_alpine_line",
       "minzoom": 13,
       "filter": [
         "has",
@@ -1734,7 +1612,7 @@
       "id": "ski-runs-nordic-labels",
       "type": "symbol",
       "source": "ski_source",
-      "source-layer": "ski_runs_nordic",
+      "source-layer": "ski_runs_nordic_line",
       "minzoom": 13,
       "filter": [
         "has",

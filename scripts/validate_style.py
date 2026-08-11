@@ -10,10 +10,14 @@ import json
 import sys
 
 KNOWN_SOURCE_LAYERS = {
-    "ski_areas_alpine",
-    "ski_areas_nordic",
-    "ski_runs_alpine",
-    "ski_runs_nordic",
+    "ski_areas_alpine_point",
+    "ski_areas_alpine_poly",
+    "ski_areas_nordic_point",
+    "ski_areas_nordic_poly",
+    "ski_runs_alpine_line",
+    "ski_runs_alpine_poly",
+    "ski_runs_nordic_line",
+    "ski_runs_nordic_poly",
     "ski_lifts",
     "ski_spots",
 }
