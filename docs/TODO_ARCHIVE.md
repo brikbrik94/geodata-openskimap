@@ -90,6 +90,16 @@ siehe `docs/ROADMAP.md`.
 
 *Erledigt: 2026-08-11 (Sub-Projekt B, selber Commit wie oben)*
 
+**Korrektur 2026-08-11, 16:20 Uhr: diese Prämisse war falsch.** Live-Vergleich
+mit openskimap.org (`feature_id=7edf1c552ccd0cd4362e099e4b5adcaf068ad594`
+"Loipe Aschau", `difficulty=easy`) zeigt: die echte Seite färbt Loipen sehr
+wohl nach Schwierigkeit (blau für "easy"), im Widerspruch zur statischen
+`terrain_v2.json`-Style-Datei. `ski-runs-nordic-line`/`-ungroomed` wurden
+daraufhin wieder auf Schwierigkeitsfarbe umgestellt (Commit
+`fix(style): restore difficulty-based coloring for nordic line/ungroomed`).
+Nur `ski-runs-nordic-casing` blieb `lit`-basiert (wie `ski-runs-downhill-casing`
+auch). Ursprünglicher (überholter) Text unten, nicht mehr aktuell:
+
 OpenSkiMap färbt `nordic-runs` nicht nach Schwierigkeit (nur casing-artiges
 Weiß/gelb bei `lit`). Die 1:1 von Alpine gespiegelte Schwierigkeitsfarblogik
 auf `ski-runs-nordic-*` wurde durch die `case lit`-Expression vom echten
