@@ -816,12 +816,84 @@
             "==",
             [
               "get",
-              "lit"
+              "difficulty_convention"
             ],
-            true
+            "europe"
           ],
-          "hsl(63, 100%, 76%)",
-          "hsl(0, 0%, 100%)"
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
         ],
         "line-width": [
           "interpolate",
@@ -871,12 +943,84 @@
             "==",
             [
               "get",
-              "lit"
+              "difficulty_convention"
             ],
-            true
+            "europe"
           ],
-          "hsl(63, 100%, 76%)",
-          "hsl(0, 0%, 100%)"
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(208, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "difficulty_convention"
+            ],
+            "japan"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(359, 94%, 53%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "difficulty"
+            ],
+            "novice",
+            "hsl(125, 100%, 33%)",
+            "easy",
+            "hsl(125, 100%, 33%)",
+            "intermediate",
+            "hsl(208, 100%, 33%)",
+            "advanced",
+            "hsl(0, 0%, 0%)",
+            "expert",
+            "hsl(0, 0%, 0%)",
+            "freeride",
+            "hsl(34, 100%, 50%)",
+            "extreme",
+            "hsl(34, 100%, 50%)",
+            "hsl(0, 0%, 35%)"
+          ]
         ],
         "line-width": [
           "interpolate",
