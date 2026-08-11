@@ -99,22 +99,6 @@ werden.
 Sprite-Ausrichtung (Icons) aktuell nicht korrekt — genauer eingrenzen,
 welche Icons/Layer betroffen sind und was konkret falsch ausgerichtet ist.
 
-## `datetime.utcnow()` DeprecationWarning in generate_manifest.py
-
-`scripts/generate_manifest.py:90` nutzt `datetime.utcnow()` für `generated_at`
-im Manifest — unter aktuellem Python 3 (3.13, siehe `.venv`) als deprecated
-markiert, geplante Entfernung in künftiger Version:
-
-```
-scripts/generate_manifest.py:90: DeprecationWarning: datetime.datetime.utcnow() is deprecated
-and scheduled for removal in a future version. Use timezone-aware objects to represent
-datetimes in UTC: datetime.datetime.now(datetime.UTC).
-```
-
-Fix: `datetime.now(datetime.UTC).strftime(...)` statt `datetime.utcnow().strftime(...)`.
-Beim Restrukturierungs-Build (2026-08-11, `update.sh`/`run.sh`-Einführung) entdeckt,
-außerhalb des dortigen Scopes, daher nur dokumentiert statt mitgefixt.
-
 ## Versionierung & CHANGELOG.md einführen (oe5ith-coding-rules §4)
 
 `oe5ith-coding-rules/AGENT_INSTRUCTIONS.md` §4 verlangt eine zentrale
@@ -124,8 +108,9 @@ Beides existiert in diesem Repo aktuell nicht.
 
 Bewusst zurückgestellt (Entscheidung 2026-08-11): erst die übrigen offenen
 Punkte in dieser Datei abarbeiten (Lift-Status, Pisten-Kategorien,
-Nordic-Einfärbung, Sprite-Ausrichtung, `datetime.utcnow()`), danach daraus
-die erste Version schneiden (Versionskonstante festlegen, `CHANGELOG.md`
-mit diesem Stand als erstem Eintrag anlegen) statt jetzt schon rückwirkend
-eine Changelog-Historie zu konstruieren. Reihenfolge: TODO-Punkte zuerst,
+Nordic-Einfärbung, Sprite-Ausrichtung — `datetime.utcnow()` bereits erledigt,
+siehe `docs/TODO_ARCHIVE.md`), danach daraus die erste Version schneiden
+(Versionskonstante festlegen, `CHANGELOG.md` mit diesem Stand als erstem
+Eintrag anlegen) statt jetzt schon rückwirkend eine Changelog-Historie zu
+konstruieren. Reihenfolge: TODO-Punkte zuerst,
 Versionierung/Changelog danach.
