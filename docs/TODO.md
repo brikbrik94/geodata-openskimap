@@ -98,3 +98,19 @@ werden.
 
 Sprite-Ausrichtung (Icons) aktuell nicht korrekt — genauer eingrenzen,
 welche Icons/Layer betroffen sind und was konkret falsch ausgerichtet ist.
+
+## `datetime.utcnow()` DeprecationWarning in generate_manifest.py
+
+`scripts/generate_manifest.py:90` nutzt `datetime.utcnow()` für `generated_at`
+im Manifest — unter aktuellem Python 3 (3.13, siehe `.venv`) als deprecated
+markiert, geplante Entfernung in künftiger Version:
+
+```
+scripts/generate_manifest.py:90: DeprecationWarning: datetime.datetime.utcnow() is deprecated
+and scheduled for removal in a future version. Use timezone-aware objects to represent
+datetimes in UTC: datetime.datetime.now(datetime.UTC).
+```
+
+Fix: `datetime.now(datetime.UTC).strftime(...)` statt `datetime.utcnow().strftime(...)`.
+Beim Restrukturierungs-Build (2026-08-11, `update.sh`/`run.sh`-Einführung) entdeckt,
+außerhalb des dortigen Scopes, daher nur dokumentiert statt mitgefixt.
