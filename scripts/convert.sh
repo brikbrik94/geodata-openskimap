@@ -44,18 +44,30 @@ ogr2ogr -f GeoJSONSeq ski_areas_alpine_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$NORDIC_AREA_WHERE"
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$NORDIC_AREA_WHERE"
 
-# Pisten/Loipen: nach 'uses' in Alpine/Nordic aufgeteilt.
-# Gemischte Nutzung (uses="downhill,nordic") landet in beiden Layern; alles was
-# nicht explizit nordic ist (downhill, skitour, connection, sled, hike, ...)
-# faellt in den Alpine-Layer. Linien- und Polygon-Geometrie bleiben getrennt,
-# siehe Kommentar oben.
-ALPINE_RUN_WHERE="uses LIKE '%downhill%' OR uses NOT LIKE '%nordic%'"
-NORDIC_RUN_WHERE="uses LIKE '%nordic%'"
+# Pisten/Loipen: nach 'uses' in vier Kategorien aufgeteilt, mit fester
+# Prioritaet downhill > nordic > skitour > other (siehe
+# docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md).
+# Jedes Feature bekommt genau eine Kategorie - keine Mehrfachzuordnung wie
+# bei den Ski-Gebieten oben. Das echte OpenSkiMap-Stylesheet zeichnet bei
+# Mehrfachnutzung mehrere parallel versetzte Linien (line-offset); das ist
+# als Roadmap-Punkt zurueckgestellt, siehe docs/ROADMAP.md. Linien- und
+# Polygon-Geometrie bleiben getrennt, siehe Kommentar oben.
+# OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL wertet
+# "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
+# Features ganz ohne uses-Wert aus allen vier Kategorien herausfallen.
+DOWNHILL_RUN_WHERE="uses LIKE '%downhill%'"
+NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND uses NOT LIKE '%downhill%'"
+SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%'"
+OTHER_RUN_WHERE="uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%')"
 
-ogr2ogr -f GeoJSONSeq ski_runs_alpine_line.jsonseq "$INPUT_FILE" runs_linestring -where "$ALPINE_RUN_WHERE"
-ogr2ogr -f GeoJSONSeq ski_runs_alpine_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$ALPINE_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_nordic_line.jsonseq "$INPUT_FILE" runs_linestring -where "$NORDIC_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_nordic_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$NORDIC_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_skitour_line.jsonseq "$INPUT_FILE" runs_linestring -where "$SKITOUR_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_skitour_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$SKITOUR_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_other_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$OTHER_RUN_WHERE"
 
 # Lifte: unveraendert, ein Layer
 ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring
@@ -79,10 +91,14 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
   -L "ski_areas_alpine_poly:ski_areas_alpine_poly.jsonseq" \
   -L "ski_areas_nordic_point:ski_areas_nordic_point.jsonseq" \
   -L "ski_areas_nordic_poly:ski_areas_nordic_poly.jsonseq" \
-  -L "ski_runs_alpine_line:ski_runs_alpine_line.jsonseq" \
-  -L "ski_runs_alpine_poly:ski_runs_alpine_poly.jsonseq" \
+  -L "ski_runs_downhill_line:ski_runs_downhill_line.jsonseq" \
+  -L "ski_runs_downhill_poly:ski_runs_downhill_poly.jsonseq" \
   -L "ski_runs_nordic_line:ski_runs_nordic_line.jsonseq" \
   -L "ski_runs_nordic_poly:ski_runs_nordic_poly.jsonseq" \
+  -L "ski_runs_skitour_line:ski_runs_skitour_line.jsonseq" \
+  -L "ski_runs_skitour_poly:ski_runs_skitour_poly.jsonseq" \
+  -L "ski_runs_other_line:ski_runs_other_line.jsonseq" \
+  -L "ski_runs_other_poly:ski_runs_other_poly.jsonseq" \
   -L "ski_lifts:ski_lifts.jsonseq" \
   -L "ski_spots:ski_spots.jsonseq"
 
