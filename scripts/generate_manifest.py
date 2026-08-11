@@ -18,7 +18,7 @@ STYLES_DIR = os.path.join(DIST_DIR, "styles")
 ASSETS_DIR = os.path.join(DIST_DIR, "assets")
 SPRITES_DIST_DIR = os.path.join(ASSETS_DIR, "sprites", "openskimap")
 
-# Quellen (Migriert auf v1.2 Standard)
+# Quellen
 WORK_DIR = os.path.join(PROJECT_ROOT, "work")
 STYLE_SRC = os.path.join(PROJECT_ROOT, "styles", "openskimap-style.json")
 SPRITES_SRC = os.path.join(PROJECT_ROOT, "assets", "sprites", "openskimap")
@@ -33,7 +33,7 @@ def format_size(size_bytes):
     return f"{s} {size_name[i]}"
 
 def generate_manifest():
-    log_info("Generating Manifest according to Plugin-Standard (v1.2)...")
+    log_info("Generating Manifest according to Plugin-Standard...")
     
     # Verzeichnisse sicherstellen
     for d in [PMTILES_DIR, STYLES_DIR, SPRITES_DIST_DIR]:
