@@ -81,6 +81,21 @@ GROUP_MAP = {
     "ski-lifts-icons": "ski-lifts",
 }
 
+# group key -> German display name shown in downstream legend UIs. Every key
+# in GROUP_MAP's values must appear here (build_layer_list raises KeyError
+# via direct dict indexing if one doesn't, same fail-fast convention as
+# GROUP_MAP itself).
+GROUP_NAMES = {
+    "ski-areas-alpine": "Skigebiete (Alpin)",
+    "ski-areas-nordic": "Skigebiete (Nordisch)",
+    "ski-runs-downhill": "Pisten",
+    "ski-runs-nordic": "Loipen",
+    "ski-runs-skitour": "Skitouren",
+    "ski-runs-other": "Sonstige Strecken",
+    "ski-spots": "Ski-Spots",
+    "ski-lifts": "Lifte",
+}
+
 
 def _group_metadata(group_layers):
     """Same fill > line > circle > (symbol/icon) primary-layer selection as
@@ -170,7 +185,7 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
             groups_dict[group_key] = {
                 "source_layer": source_layer,
                 "source_layers": [],
-                "name": group_key.replace("-", " ").title(),
+                "name": GROUP_NAMES[group_key],
                 "template": group_key,
                 "original_file": SOURCE_GPKG_REL_PATH,
                 "style_layers": [],

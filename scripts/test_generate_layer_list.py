@@ -113,6 +113,16 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(lifts["outline_color"], "hsl(0, 0%, 100%)")
         self.assertEqual(lifts["outline_width"], 5.0)
 
+    def test_group_names_are_german(self):
+        self.assertEqual(self.groups_by_key["ski-runs-downhill"]["name"], "Pisten")
+        self.assertEqual(self.groups_by_key["ski-runs-nordic"]["name"], "Loipen")
+        self.assertEqual(self.groups_by_key["ski-runs-skitour"]["name"], "Skitouren")
+        self.assertEqual(self.groups_by_key["ski-runs-other"]["name"], "Sonstige Strecken")
+        self.assertEqual(self.groups_by_key["ski-areas-alpine"]["name"], "Skigebiete (Alpin)")
+        self.assertEqual(self.groups_by_key["ski-areas-nordic"]["name"], "Skigebiete (Nordisch)")
+        self.assertEqual(self.groups_by_key["ski-spots"]["name"], "Ski-Spots")
+        self.assertEqual(self.groups_by_key["ski-lifts"]["name"], "Lifte")
+
 
 if __name__ == "__main__":
     unittest.main()
