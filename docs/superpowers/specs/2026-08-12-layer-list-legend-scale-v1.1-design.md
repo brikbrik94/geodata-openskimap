@@ -130,16 +130,23 @@ def extract_layer_icon(layer):
 
 ## Erwartetes Ergebnis pro Gruppe (Kurzform)
 
-| Gruppe | type | color | width | outline_color/width | legend_scale_id | legend_items |
-|---|---|---|---|---|---|---|
-| Skigebiete (Alpin) | fill | `#3085fe` | – | – | – | – |
-| Skigebiete (Nordisch) | fill | `#2ecc71` | – | – | – | – |
-| Pisten | fill | `null` (Expression) | – | – | `ski-difficulty-v1` | `null` |
-| Loipen | fill | `null` | – | – | `ski-difficulty-v1` | `null` |
-| Skitouren | fill | `null` | – | – | `ski-difficulty-v1` | `null` |
-| Sonstige Strecken | fill | `null` | – | – | `ski-difficulty-v1` | `null` |
-| Ski-Spots | circle | `null` (Expression) | – | – | – | `[Lift Station, Halfpipe, …]` |
-| Lifte | line | `null` (Status-Expression) | `3.0` | `"hsl(0, 0%, 100%)"` / `5.0` | – | `[Operating, Proposed, …]` |
+| Gruppe | type | color | width | outline_color | outline_width | legend_scale_id | legend_items |
+|---|---|---|---|---|---|---|---|
+| Skigebiete (Alpin) | fill | `#3085fe` | – | – | – | – | – |
+| Skigebiete (Nordisch) | fill | `#2ecc71` | – | – | – | – | – |
+| Pisten | fill | `null` (Expression) | – | `null`¹ | `5.0`² | `ski-difficulty-v1` | `null` |
+| Loipen | fill | `null` | – | `null`¹ | `5.0`² | `ski-difficulty-v1` | `null` |
+| Skitouren | fill | `null` | – | – | – | `ski-difficulty-v1` | `null` |
+| Sonstige Strecken | fill | `null` | – | – | – | `ski-difficulty-v1` | `null` |
+| Ski-Spots | circle | `null` (Expression) | – | – | – | – | `[Lift Station, Halfpipe, …]` |
+| Lifte | line | `null` (Status-Expression) | `3.0` | `"hsl(0, 0%, 100%)"` | `5.0` | – | `[Operating, Proposed, …]` |
+
+¹ `ski-runs-{downhill,nordic}-casing` existieren (im Gegensatz zu skitour/other,
+die keinen Casing-Layer haben), aber ihre `line-color` ist selbst eine Expression
+(`lit`- bzw. seit dem Nordic-Casing/Line-Swap difficulty-basiert) → kein literaler
+String → `outline_color: null` trotz vorhandenem Casing-Layer.
+² `line-width` der beiden Casing-Layer ist eine `interpolate`-Expression mit
+identischer Zoom-Kurve (6→1.8, 9→2.8, 12→4.0, 14→5.0) → höchster Stop `5.0`.
 
 `legend_sections` (einziger Eintrag): `{"id": "ski-difficulty-v1", "label":
 "Schwierigkeitsgrade", "items": [Novice…Extreme, Sonstige]}`.
