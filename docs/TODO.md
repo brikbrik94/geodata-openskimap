@@ -32,3 +32,26 @@ Bewusst zurückgestellt (Entscheidung 2026-08-11): `docs/TODO.md` ist jetzt
 leer (alle Punkte erledigt, siehe `docs/TODO_ARCHIVE.md`) — die erste
 Version wird als Nächstes geschnitten (Versionskonstante festlegen,
 `CHANGELOG.md` mit diesem Stand als erstem Eintrag anlegen).
+
+## `extract_layer_metadata()` in `layer_metadata_extractor.py` ist toter Code
+
+`generate_layer_list.py` reimplementiert die Gruppen-Metadaten-Logik lokal
+(`_group_metadata`), weil openskimap-Gruppen mehrere `source-layer`s
+umspannen können — `extract_layer_metadata()` (Single-`source-layer`-Variante,
+für den `geodata-overlays`-Fall gedacht) wird nirgends in diesem Repo
+aufgerufen. Seit dem v1.1-Feld-Update (`width`/`dasharray`/`outline_*`/`icon`,
+siehe `docs/superpowers/specs/2026-08-12-layer-list-legend-scale-v1.1-design.md`)
+ist sie zusätzlich veraltet: sie kennt diese Felder nicht. Entscheiden und
+umsetzen: entweder entfernen, oder auf den aktuellen Stand bringen, falls
+sie doch als Referenz/Portierungs-Vorlage für andere `geodata-*`-Repos
+gebraucht wird (`scripts/layer_metadata_extractor.py:332-386`).
+
+## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
+
+`scripts/ci/__pycache__/utils.cpython-313.pyc` ist im Repo eingecheckt
+(sollte gitignored sein — kompilierte Python-Bytecode-Caches gehören nie ins
+Git). Erzeugt bei jedem Testlauf lokale, unstaged Änderungen (`git status`
+zeigt die Datei als modifiziert, sobald `python3 -m unittest` gelaufen ist),
+ohne dass echte Arbeit dahintersteckt. Entscheiden und umsetzen: Datei aus
+dem Git-Tracking entfernen (`git rm --cached`) und `__pycache__/` zum
+`.gitignore` hinzufügen.

@@ -5,6 +5,32 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-12 13:59
+
+### Changed
+- `layer-list.json`-Schema auf v1.1 (`geodata-plugin-standard` v1.1.0,
+  §5) angehoben: neue Felder `width`, `dasharray`, `outline_color`,
+  `outline_width`, `icon`, `legend_scale_id` je Gruppe, neuer
+  Top-Level-Block `legend_sections`. **Breaking Change**: Gruppen mit
+  gesetzter `legend_scale_id` haben jetzt `legend_items: null` — die
+  Werte liegen zentral in `legend_sections`.
+- Die vier Pisten-Gruppen (`ski-runs-downhill/-nordic/-skitour/-other`)
+  teilen sich jetzt eine zentrale Schwierigkeits-Legende
+  (`legend_scale_id: "ski-difficulty-v1"`) statt sie viermal identisch
+  zu duplizieren.
+- Gruppen-Anzeigenamen auf Deutsch umgestellt (Pisten, Loipen,
+  Skitouren, Sonstige Strecken, Skigebiete (Alpin/Nordisch),
+  Ski-Spots, Lifte) statt automatisch generierter
+  Titel-Case-Platzhalter.
+
+### Fixed
+- `ski-lifts`-Gruppe zeigte `color: "hsl(0, 0%, 100%)"` (weiß, von der
+  Casing-Linie `ski-lifts-casing`), obwohl die eigentliche
+  Status-Farbe (rot/…) in `ski-lifts-line` liegt und `legend_items`
+  bereits korrekt die Status-Farben zeigte. Casing-/Outline-Layer
+  (`id` endet auf `-casing`/`-outline`) werden jetzt nie mehr als
+  Primär-Layer gewählt.
+
 ## [Unreleased] - 2026-08-12 07:25
 
 ### Fixed
