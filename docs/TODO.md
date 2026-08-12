@@ -44,7 +44,7 @@ siehe `docs/superpowers/specs/2026-08-12-layer-list-legend-scale-v1.1-design.md`
 ist sie zusätzlich veraltet: sie kennt diese Felder nicht. Entscheiden und
 umsetzen: entweder entfernen, oder auf den aktuellen Stand bringen, falls
 sie doch als Referenz/Portierungs-Vorlage für andere `geodata-*`-Repos
-gebraucht wird (`scripts/layer_metadata_extractor.py:332-386`).
+gebraucht wird (`scripts/layer_metadata_extractor.py:450-504`).
 
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 
