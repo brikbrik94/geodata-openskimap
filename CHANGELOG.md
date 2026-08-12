@@ -5,7 +5,7 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-12 13:59
+## [2.0.0] - 2026-08-12
 
 ### Changed
 - `layer-list.json`-Schema auf v1.1 (`geodata-plugin-standard` v1.1.0,
@@ -24,16 +24,6 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Titel-Case-Platzhalter.
 
 ### Fixed
-- `ski-lifts`-Gruppe zeigte `color: "hsl(0, 0%, 100%)"` (weiß, von der
-  Casing-Linie `ski-lifts-casing`), obwohl die eigentliche
-  Status-Farbe (rot/…) in `ski-lifts-line` liegt und `legend_items`
-  bereits korrekt die Status-Farben zeigte. Casing-/Outline-Layer
-  (`id` endet auf `-casing`/`-outline`) werden jetzt nie mehr als
-  Primär-Layer gewählt.
-
-## [Unreleased] - 2026-08-12 07:25
-
-### Fixed
 - `layer-list.json`: `legend_items` für die schwierigkeitsbasierten Pisten-Fill-Layer
   (`ski-runs-{downhill,nordic,skitour,other}-fill`) war immer `null`, weil deren
   `fill-color` ein `case` (Umschaltung nach `difficulty_convention`: europe/japan/
@@ -42,6 +32,12 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   nur `interpolate`/`match` auf oberster Ebene, nicht `case`. Legende wird jetzt aus
   der `europe`-Convention aufgelöst (Zielgruppe DACH), mit Fallback auf den
   `case`-Else-Zweig, falls kein `europe`-Branch vorhanden ist.
+- `ski-lifts`-Gruppe zeigte `color: "hsl(0, 0%, 100%)"` (weiß, von der
+  Casing-Linie `ski-lifts-casing`), obwohl die eigentliche
+  Status-Farbe (rot/…) in `ski-lifts-line` liegt und `legend_items`
+  bereits korrekt die Status-Farben zeigte. Casing-/Outline-Layer
+  (`id` endet auf `-casing`/`-outline`) werden jetzt nie mehr als
+  Primär-Layer gewählt.
 
 ## [1.0.1] - 2026-08-11
 
