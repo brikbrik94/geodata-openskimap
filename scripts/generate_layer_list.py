@@ -29,6 +29,8 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), "ci"))
+from utils import log_warn
 from layer_metadata_extractor import (
     extract_layer_color,
     extract_layer_opacity,
@@ -96,6 +98,21 @@ GROUP_NAMES = {
     "ski-lifts": "Lifte",
 }
 
+# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v1.1.0
+# §5.5/§5.6). All four run-category groups render fill-color from the same
+# difficulty match expression (verified byte-identical against
+# styles/openskimap-style.json), so they share one central legend instead of
+# duplicating identical legend_items four times.
+GROUP_LEGEND_SCALE = {
+    "ski-runs-downhill": "ski-difficulty-v1",
+    "ski-runs-nordic": "ski-difficulty-v1",
+    "ski-runs-skitour": "ski-difficulty-v1",
+    "ski-runs-other": "ski-difficulty-v1",
+}
+LEGEND_SCALE_LABELS = {
+    "ski-difficulty-v1": "Schwierigkeitsgrade",
+}
+
 
 def _group_metadata(group_layers):
     """Same fill > line > circle > (symbol/icon) primary-layer selection as
@@ -147,6 +164,52 @@ def _group_metadata(group_layers):
         "icon": extract_layer_icon(primary_layer),
         "legend_items": extract_legend_items(group_layers),
     }
+
+
+def _build_legend_sections(groups_dict):
+    """
+    Collapse per-group legend_items into one shared top-level entry per
+    distinct legend_scale_id (GEODATA_PLUGIN_STANDARD.md v1.1.0 §5.5/§5.6).
+
+    Sets legend_scale_id on every group (None if GROUP_LEGEND_SCALE has no
+    entry for it) and, for groups with a configured scale, nulls their
+    legend_items — the values live centrally in the returned list instead.
+    If two groups share a legend_scale_id but produced different
+    legend_items, logs a warning (does not raise — a standard document
+    can't mandate a build abort in consuming repos, §5.5) and keeps the
+    first group's items.
+
+    Args:
+        groups_dict (dict): group_key -> group dict, mutated in place
+
+    Returns:
+        list[dict] | None: [{"id", "label", "items"}, ...] in
+        first-encounter order, or None if no group has a configured scale
+    """
+    sections = {}
+    for group_key, group in groups_dict.items():
+        scale_id = GROUP_LEGEND_SCALE.get(group_key)
+        group["legend_scale_id"] = scale_id
+        if scale_id is None:
+            continue
+
+        items = group.get("legend_items")
+        if scale_id not in sections:
+            sections[scale_id] = {
+                "id": scale_id,
+                "label": LEGEND_SCALE_LABELS[scale_id],
+                "items": items,
+            }
+        elif items != sections[scale_id]["items"]:
+            log_warn(
+                f"legend_scale_id '{scale_id}': group '{group_key}' legend_items "
+                f"differ from the first group sharing this scale — "
+                f"layer-list.json will use the first group's items."
+            )
+
+        group["legend_items"] = None
+
+    return list(sections.values()) if sections else None
 
 
 def build_layer_list(style_data, style_id, name, pmtiles_path):
@@ -211,8 +274,10 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
             group["icon"] = metadata.get("icon")
             group["legend_items"] = metadata.get("legend_items")
 
+    legend_sections = _build_legend_sections(groups_dict)
+
     return {
-        "version": "1.0",
+        "version": "1.1",
         "styles": [
             {
                 "style_id": style_id,
@@ -221,6 +286,7 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
                 "groups": list(groups_dict.values()),
             }
         ],
+        "legend_sections": legend_sections,
     }
 
 
