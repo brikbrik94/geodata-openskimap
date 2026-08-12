@@ -32,6 +32,10 @@ sys.path.append(os.path.dirname(__file__))
 from layer_metadata_extractor import (
     extract_layer_color,
     extract_layer_opacity,
+    extract_layer_width,
+    extract_layer_dasharray,
+    extract_outline_metadata,
+    extract_layer_icon,
     extract_legend_items,
 )
 
@@ -79,14 +83,29 @@ GROUP_MAP = {
 
 
 def _group_metadata(group_layers):
-    """Same fill > line > circle > symbol primary-layer selection as
+    """Same fill > line > circle > (symbol/icon) primary-layer selection as
     layer_metadata_extractor.extract_layer_metadata, but over an already
     collected list of layers instead of filtering style_data by a single
-    source-layer name (a group here can span several)."""
+    source-layer name (a group here can span several).
+
+    Layers whose id ends in "-casing" or "-outline" are never chosen as the
+    primary layer (their line-color/line-width instead become
+    outline_color/outline_width, see extract_outline_metadata) — otherwise a
+    casing layer that happens to appear first in the style (e.g.
+    ski-lifts-casing before ski-lifts-line) would incorrectly become the
+    group's primary color/type, out of sync with legend_items."""
     layer_type_priority = {"fill": 4, "line": 3, "circle": 2, "symbol": 1}
+
+    def is_outline_layer(layer):
+        layer_id = layer.get("id", "")
+        return layer.get("type") == "line" and (
+            layer_id.endswith("-casing") or layer_id.endswith("-outline")
+        )
 
     primary_layer = None
     for layer in group_layers:
+        if is_outline_layer(layer):
+            continue
         layer_type = layer.get("type")
         if layer_type not in layer_type_priority:
             continue
@@ -96,10 +115,21 @@ def _group_metadata(group_layers):
     if primary_layer is None:
         return None
 
+    primary_type = primary_layer.get("type")
+    if primary_type == "symbol" and "icon-image" in primary_layer.get("layout", {}):
+        primary_type = "icon"
+
+    outline = extract_outline_metadata(group_layers)
+
     return {
-        "type": primary_layer.get("type"),
+        "type": primary_type,
         "color": extract_layer_color(primary_layer),
         "opacity": extract_layer_opacity(primary_layer),
+        "width": extract_layer_width(primary_layer),
+        "dasharray": extract_layer_dasharray(primary_layer),
+        "outline_color": outline["outline_color"],
+        "outline_width": outline["outline_width"],
+        "icon": extract_layer_icon(primary_layer),
         "legend_items": extract_legend_items(group_layers),
     }
 
@@ -159,6 +189,11 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
             group["type"] = metadata.get("type")
             group["color"] = metadata.get("color")
             group["opacity"] = metadata.get("opacity")
+            group["width"] = metadata.get("width")
+            group["dasharray"] = metadata.get("dasharray")
+            group["outline_color"] = metadata.get("outline_color")
+            group["outline_width"] = metadata.get("outline_width")
+            group["icon"] = metadata.get("icon")
             group["legend_items"] = metadata.get("legend_items")
 
     return {
