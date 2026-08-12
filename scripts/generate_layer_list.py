@@ -223,7 +223,7 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
         pmtiles_path (str): path relative to dist/pmtiles/, e.g. "openskimap.pmtiles"
 
     Returns:
-        dict: {"version": "1.0", "styles": [...]} per the plugin standard schema
+        dict: {"version": "1.1", "styles": [...]} per the plugin standard schema
 
     Raises:
         KeyError: a style layer's id is not in GROUP_MAP (see module docstring)
