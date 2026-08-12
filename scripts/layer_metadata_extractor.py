@@ -113,6 +113,124 @@ def extract_layer_opacity(layer):
     return 1
 
 
+def extract_layer_width(layer):
+    """
+    Extract line-width from a MapLibre line layer.
+
+    Literal numbers are returned directly. An `interpolate` expression over
+    zoom returns its highest-zoom stop value (the last value in the stop
+    list) — the width the layer renders at when fully zoomed in. Any other
+    expression form (e.g. data-driven) returns None, as does any non-line
+    layer.
+
+    Args:
+        layer (dict): A MapLibre layer object
+
+    Returns:
+        float | int | None
+    """
+    if layer.get("type") != "line":
+        return None
+
+    width = layer.get("paint", {}).get("line-width")
+
+    if isinstance(width, (int, float)):
+        return width
+
+    if isinstance(width, list) and width and width[0] == "interpolate":
+        stops_and_values = width[3:]
+        if stops_and_values and len(stops_and_values) % 2 == 0:
+            last_value = stops_and_values[-1]
+            if isinstance(last_value, (int, float)):
+                return last_value
+
+    return None
+
+
+def extract_layer_dasharray(layer):
+    """
+    Extract line-dasharray from a MapLibre line layer.
+
+    Only a literal 2-element numeric array counts, whether written as a raw
+    array (`[1, 3]`) or wrapped in a MapLibre "literal" expression
+    (`["literal", [1, 3]]` — the form openskimap's style actually uses for
+    the private/other lift-line variants). Anything else (missing field,
+    wrong length, non-numeric values) returns None.
+
+    Args:
+        layer (dict): A MapLibre layer object
+
+    Returns:
+        list[float | int] | None
+    """
+    dasharray = layer.get("paint", {}).get("line-dasharray")
+
+    if not isinstance(dasharray, list):
+        return None
+
+    if len(dasharray) == 2 and dasharray[0] == "literal" and isinstance(dasharray[1], list):
+        candidate = dasharray[1]
+    else:
+        candidate = dasharray
+
+    if len(candidate) == 2 and all(isinstance(v, (int, float)) for v in candidate):
+        return candidate
+
+    return None
+
+
+def extract_outline_metadata(group_layers):
+    """
+    Find a group's casing/outline layer and extract its color/width.
+
+    Scans group_layers for the first `type: "line"` layer whose `id` ends in
+    "-casing" or "-outline" (GEODATA_PLUGIN_STANDARD.md v1.1 §5.3 extraction
+    rule — id-suffix only, no z-order or other fallback). Its `line-color`
+    (via extract_layer_color — None if it's an expression, not a literal
+    string) and `line-width` (via extract_layer_width) become
+    outline_color/outline_width. No matching layer -> both None.
+
+    Args:
+        group_layers (list): List of MapLibre layer objects in one group
+
+    Returns:
+        dict: {"outline_color": str | None, "outline_width": float | int | None}
+    """
+    for layer in group_layers:
+        layer_id = layer.get("id", "")
+        if layer.get("type") == "line" and (
+            layer_id.endswith("-casing") or layer_id.endswith("-outline")
+        ):
+            return {
+                "outline_color": extract_layer_color(layer),
+                "outline_width": extract_layer_width(layer),
+            }
+
+    return {"outline_color": None, "outline_width": None}
+
+
+def extract_layer_icon(layer):
+    """
+    Extract icon-image from a MapLibre symbol layer.
+
+    Only returns a value for `type: "symbol"` layers, and only when
+    `layout.icon-image` is a literal string (openskimap's lift-icon layer
+    uses a `match` expression there, so this returns None for it — correct
+    per spec, not a bug).
+
+    Args:
+        layer (dict): A MapLibre layer object
+
+    Returns:
+        str | None
+    """
+    if layer.get("type") != "symbol":
+        return None
+
+    icon = layer.get("layout", {}).get("icon-image")
+    return icon if isinstance(icon, str) else None
+
+
 def extract_legend_items(style_layers):
     """
     Extract legend items from style layers.
