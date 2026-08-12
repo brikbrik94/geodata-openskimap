@@ -20,7 +20,19 @@ original (geodata-overlays never uses either):
    the upstream priority map silently drops (source-layer ends up with no
    type/color/opacity/legend_items at all when circle is its only layer
    type, e.g. ski_spots).
+3. `extract_legend_items` resolves a top-level `case` expression before
+   looking for `interpolate`/`match` — openskimap's piste-difficulty fill
+   colors (`ski-runs-*-fill`) switch on `difficulty_convention`
+   (europe/japan/default) via `case`, each branch a `match` on
+   `difficulty`. Without this, these layers — the legend a ski map
+   actually needs — silently got `legend_items: null`. Resolution always
+   picks the "europe" branch (DACH is this project's target audience;
+   see CLAUDE.md), falling back to the `case`'s else-branch if no
+   `difficulty_convention == "europe"` condition is present.
 """
+
+DIFFICULTY_CASE_PROPERTY = "difficulty_convention"
+DIFFICULTY_CASE_VALUE = "europe"
 
 
 def extract_layer_color(layer):
@@ -106,10 +118,11 @@ def extract_legend_items(style_layers):
     Extract legend items from style layers.
 
     Scans fill-color (fill layers) and line-color (line layers) for
-    interpolate/match expressions. Numeric match/interpolate values produce
-    time-range-style labels ("X-Y min"); string match values produce one
-    item per matched value plus a trailing "Sonstige" item for the fallback
-    color, if any.
+    interpolate/match expressions, resolving a top-level "case" first (see
+    module docstring, deviation 3) if present. Numeric match/interpolate
+    values produce time-range-style labels ("X-Y min"); string match values
+    produce one item per matched value plus a trailing "Sonstige" item for
+    the fallback color, if any.
 
     Args:
         style_layers (list): List of MapLibre layer objects
@@ -134,12 +147,55 @@ def extract_legend_items(style_layers):
         if not isinstance(color_expr, list):
             continue
 
+        if color_expr[0] == "case":
+            color_expr = _resolve_case_branch(
+                color_expr, DIFFICULTY_CASE_PROPERTY, DIFFICULTY_CASE_VALUE
+            )
+            if not isinstance(color_expr, list):
+                continue
+
         if color_expr[0] == "interpolate":
             return _parse_interpolate_expression(color_expr)
         elif color_expr[0] == "match":
             return _parse_match_expression(color_expr)
 
     return None
+
+
+def _resolve_case_branch(expr, property_name, target_value):
+    """
+    Resolve a MapLibre "case" expression to the output of the branch whose
+    condition is ["==", ["get", property_name], target_value], falling back
+    to the case's else-branch (its final element) if no branch matches.
+
+    Expected format:
+    ["case", cond1, output1, cond2, output2, ..., else_output]
+
+    Args:
+        expr (list): Case expression array
+        property_name (str): property name to match in an ["==", ["get", ...], value] condition
+        target_value: value the condition must compare against
+
+    Returns:
+        The matching (or else-branch) output, or None if the expression is malformed
+    """
+    branches = expr[1:]
+    if len(branches) % 2 == 0:
+        return None
+
+    for i in range(0, len(branches) - 1, 2):
+        condition = branches[i]
+        output = branches[i + 1]
+        if (
+            isinstance(condition, list)
+            and len(condition) == 3
+            and condition[0] == "=="
+            and condition[1] == ["get", property_name]
+            and condition[2] == target_value
+        ):
+            return output
+
+    return branches[-1]
 
 
 def _parse_interpolate_expression(expr):
