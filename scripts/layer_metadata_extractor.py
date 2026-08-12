@@ -2,13 +2,14 @@
 """
 Metadata extractor for MapLibre style layers.
 
-Extracts type, color, opacity, and legend items from style JSON layers
-to support automated legend rendering.
+Extracts type, color, opacity, width, dasharray, outline color/width,
+icon, and legend items from style JSON layers to support automated
+legend rendering.
 
 Ported from geodata-overlays/scripts/layer_metadata_extractor.py per
-GEODATA_PLUGIN_STANDARD.md §5.6 ("einfach übernehmen"), with two
+GEODATA_PLUGIN_STANDARD.md §5.6 ("einfach übernehmen"), with three
 deviations required by openskimap's style but absent from the upstream
-original (geodata-overlays never uses either):
+original (geodata-overlays never uses any of them):
 
 1. extract_layer_color only returns a value when it is actually a string
    (hex/rgba/hsl) — the spec documents `color` as `String | null`, but
@@ -231,6 +232,18 @@ def extract_layer_icon(layer):
     return icon if isinstance(icon, str) else None
 
 
+# NOTE: unlike generate_layer_list.py's _group_metadata, which excludes
+# -casing/-outline-suffixed layers from primary-layer selection (so a casing
+# layer never determines a group's color/type), extract_legend_items below
+# is deliberately NOT given that same filtered list — it scans ALL of a
+# group's layers (including casing/outline ones) for a categorized color
+# expression. Today this is harmless (no casing layer's color expression
+# currently wins the scan ahead of the "real" one), but it's a latent
+# inconsistency risk: if a future style change moves a group's only
+# categorized color expression onto a casing-only layer while a non-casing
+# layer has a different/no color, legend_items and the primary color/type
+# could show inconsistent information. Watch for this if style layer order
+# changes.
 def extract_legend_items(style_layers):
     """
     Extract legend items from style layers.

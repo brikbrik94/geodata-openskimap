@@ -16,7 +16,7 @@ GROUP_MAP below, not derived from `source-layer` equality.
 
 `template` and `original_file` have no direct equivalent without a
 per-group dataset config or source file: `template` is set to the
-group key itself (each of our 6 groups is its own category),
+group key itself (each of our 8 groups is its own category),
 `original_file` points at the shared GeoPackage source. `source_layer`
 holds the group's first (file-order) source-layer for spec compliance;
 `source_layers` (plural, not in the spec) additionally lists every

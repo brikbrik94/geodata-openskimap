@@ -2,13 +2,11 @@ import json
 import os
 import sys
 import unittest
-
-sys.path.insert(0, os.path.dirname(__file__))
-from generate_layer_list import _group_metadata, build_layer_list
-
 import unittest.mock
 
+sys.path.insert(0, os.path.dirname(__file__))
 import generate_layer_list
+from generate_layer_list import _group_metadata, build_layer_list
 
 STYLE_PATH = os.path.join(os.path.dirname(__file__), "..", "styles", "openskimap-style.json")
 

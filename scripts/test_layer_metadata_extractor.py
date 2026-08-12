@@ -1,5 +1,8 @@
+import os
+import sys
 import unittest
 
+sys.path.insert(0, os.path.dirname(__file__))
 from layer_metadata_extractor import (
     extract_layer_width,
     extract_layer_dasharray,

@@ -34,9 +34,14 @@ bash scripts/check_dependencies.sh # verify aria2c, ogr2ogr, tippecanoe are inst
 ./run.sh                           # force a full pipeline run regardless of upstream changes
 ```
 
-There is no test suite, linter, or package manager in this repo (no
+There is no linter or package manager in this repo (no
 `package.json`/`requirements.txt`); `scripts/ci/utils.py` and
-`generate_manifest.py` use only the Python standard library.
+`generate_manifest.py` use only the Python standard library. There is a
+stdlib-`unittest`-based test suite (`scripts/test_*.py`) — run it with
+`cd scripts && python3 -m unittest test_validate_style
+test_layer_metadata_extractor test_generate_layer_list -v` before
+committing changes to the style, the extractor, or the layer-list
+generator.
 
 To run/debug a single stage instead of the full `run.sh`:
 
