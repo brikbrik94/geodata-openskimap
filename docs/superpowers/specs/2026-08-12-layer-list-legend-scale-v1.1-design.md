@@ -163,8 +163,9 @@ Kein Versions-Bump von `VERSION` in diesem Schritt (sammelt sich im
 
 ## Tests
 
-Neu: `scripts/test_layer_metadata_extractor.py` (pytest, analog
-`scripts/test_validate_style.py`), TDD (rot/grün):
+Neu: `scripts/test_layer_metadata_extractor.py` (`unittest`, Python-Stdlib,
+analog `scripts/test_validate_style.py` — keine neuen pip-Abhängigkeiten),
+TDD (rot/grün):
 
 - `extract_layer_width`: literale Zahl, `interpolate`-Höchststop, Nicht-line-Layer
   → `None`.
@@ -194,8 +195,8 @@ ist ein anderes Schema, §4, unberührt), `scripts/download.sh`.
 
 ## Verifikation
 
-- `python3 -m pytest scripts/test_layer_metadata_extractor.py -v` — neue Tests grün.
-- `python3 -m pytest scripts/test_validate_style.py -v` — weiterhin grün
+- `cd scripts && python3 -m unittest test_layer_metadata_extractor -v` — neue Tests grün.
+- `cd scripts && python3 -m unittest test_validate_style -v` — weiterhin grün
   (unverändertes Verhalten für Style-Validierung).
 - `python3 scripts/generate_layer_list.py` gegen den echten
   `dist/styles/openskimap-style.json` (nach `run.sh`/`update.sh`) — Ausgabe
