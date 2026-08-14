@@ -8,6 +8,7 @@ from layer_metadata_extractor import (
     extract_layer_dasharray,
     extract_outline_metadata,
     extract_layer_icon,
+    determine_part_kind,
 )
 
 
@@ -150,6 +151,34 @@ class ExtractLayerIconTests(unittest.TestCase):
     def test_missing_icon_image_returns_none(self):
         layer = {"type": "symbol", "layout": {"text-field": ["get", "name"]}}
         self.assertIsNone(extract_layer_icon(layer))
+
+
+class DeterminePartKindTests(unittest.TestCase):
+    def test_fill_layer(self):
+        self.assertEqual(determine_part_kind({"type": "fill"}), "fill")
+
+    def test_circle_layer(self):
+        self.assertEqual(determine_part_kind({"type": "circle"}), "circle")
+
+    def test_line_layer_without_casing_suffix(self):
+        self.assertEqual(determine_part_kind({"type": "line", "id": "ski-lifts-line"}), "line")
+
+    def test_line_layer_with_casing_suffix(self):
+        self.assertEqual(determine_part_kind({"type": "line", "id": "ski-lifts-casing"}), "outline")
+
+    def test_line_layer_with_outline_suffix(self):
+        self.assertEqual(determine_part_kind({"type": "line", "id": "water-protection-outline"}), "outline")
+
+    def test_symbol_layer_with_icon_image_is_icon(self):
+        layer = {"type": "symbol", "id": "ski-lifts-icons", "layout": {"icon-image": "x"}}
+        self.assertEqual(determine_part_kind(layer), "icon")
+
+    def test_symbol_layer_without_icon_image_is_text(self):
+        layer = {"type": "symbol", "id": "ski-lifts-labels", "layout": {"text-field": ["get", "name"]}}
+        self.assertEqual(determine_part_kind(layer), "text")
+
+    def test_unmapped_type_returns_none(self):
+        self.assertIsNone(determine_part_kind({"type": "raster"}))
 
 
 if __name__ == "__main__":

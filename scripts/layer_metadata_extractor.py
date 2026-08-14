@@ -35,6 +35,53 @@ original (geodata-overlays never uses any of them):
 DIFFICULTY_CASE_PROPERTY = "difficulty_convention"
 DIFFICULTY_CASE_VALUE = "europe"
 
+# kind -> {field name -> MapLibre paint/layout property}, per
+# GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.3's kind table. A field absent from a
+# kind's sub-dict is always null for that kind's Parts (e.g. "fill" has no
+# "width").
+PART_FIELDS_BY_KIND = {
+    "fill": {"color": "fill-color", "opacity": "fill-opacity"},
+    "line": {
+        "color": "line-color", "opacity": "line-opacity",
+        "width": "line-width", "dasharray": "line-dasharray",
+    },
+    "outline": {
+        "color": "line-color", "opacity": "line-opacity",
+        "width": "line-width", "dasharray": "line-dasharray",
+    },
+    "icon": {"color": "icon-color", "opacity": "icon-opacity", "icon": "icon-image"},
+    "text": {"color": "text-color", "opacity": "text-opacity"},
+    "circle": {"color": "circle-color", "opacity": "circle-opacity", "radius": "circle-radius"},
+}
+
+
+def determine_part_kind(layer):
+    """
+    Determine a style layer's Part `kind` per GEODATA_PLUGIN_STANDARD.md
+    v2.0.0 §5.3.
+
+    Args:
+        layer (dict): A MapLibre style layer object
+
+    Returns:
+        str | None: one of PART_FIELDS_BY_KIND's keys, or None if the
+            layer's `type` has no kind mapping (e.g. fill-extrusion,
+            heatmap, raster) — such a layer produces no Part.
+    """
+    layer_type = layer.get("type")
+
+    if layer_type == "fill":
+        return "fill"
+    if layer_type == "circle":
+        return "circle"
+    if layer_type == "line":
+        layer_id = layer.get("id", "")
+        return "outline" if layer_id.endswith(("-casing", "-outline")) else "line"
+    if layer_type == "symbol":
+        return "icon" if "icon-image" in layer.get("layout", {}) else "text"
+
+    return None
+
 
 def extract_layer_color(layer):
     """
