@@ -83,6 +83,97 @@ def determine_part_kind(layer):
     return None
 
 
+def _resolve_part_color_expression(layer, kind):
+    """
+    Look up the kind-specific color paint property (PART_FIELDS_BY_KIND) and
+    resolve it one step: a top-level "case" expression is resolved via
+    _resolve_case_branch (openskimap deviation, see module docstring).
+
+    Args:
+        layer (dict): A MapLibre style layer object
+        kind (str): One of PART_FIELDS_BY_KIND's keys
+
+    Returns:
+        str | list | None: a literal color string, a resolved
+            interpolate/match expression (list), or None (kind has no color
+            field, property unset, non-list/non-string value, or an
+            unsupported expression form after case-resolution).
+    """
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("color")
+    if prop is None:
+        return None
+
+    value = layer.get("paint", {}).get(prop)
+
+    if isinstance(value, str):
+        return value
+
+    if not isinstance(value, list) or not value:
+        return None
+
+    if value[0] == "case":
+        value = _resolve_case_branch(value, DIFFICULTY_CASE_PROPERTY, DIFFICULTY_CASE_VALUE)
+        if isinstance(value, str):
+            return value
+        if not isinstance(value, list):
+            return None
+
+    if value[0] in ("interpolate", "match"):
+        return value
+
+    return None
+
+
+def extract_part_color(layer, kind):
+    """
+    Extract a Part's `color` field per GEODATA_PLUGIN_STANDARD.md v2.0.0
+    §5.3/§5.4.
+
+    Args:
+        layer (dict): A MapLibre style layer object
+        kind (str): One of PART_FIELDS_BY_KIND's keys
+
+    Returns:
+        dict | str | None: {"mode": "fixed", "value": str} for a literal
+            color; the string "categorized" (internal marker — the actual
+            {"mode": "scale", "scale_id": ...} is assembled one level up in
+            generate_layer_list.py, which owns the group->scale_id config,
+            see extract_categorized_items for the item list) for an
+            interpolate/match expression; None otherwise.
+    """
+    resolved = _resolve_part_color_expression(layer, kind)
+
+    if isinstance(resolved, str):
+        return {"mode": "fixed", "value": resolved}
+    if isinstance(resolved, list):
+        return "categorized"
+    return None
+
+
+def extract_categorized_items(layer, kind):
+    """
+    Extract legend items ({label, color} per category) for a Part whose
+    color is categorized (see extract_part_color).
+
+    Args:
+        layer (dict): A MapLibre style layer object
+        kind (str): One of PART_FIELDS_BY_KIND's keys
+
+    Returns:
+        list[dict] | None: [{"label": ..., "color": ...}, ...], or None if
+            the layer's color is not categorized.
+    """
+    resolved = _resolve_part_color_expression(layer, kind)
+
+    if not isinstance(resolved, list):
+        return None
+    if resolved[0] == "interpolate":
+        return _parse_interpolate_expression(resolved)
+    if resolved[0] == "match":
+        return _parse_match_expression(resolved)
+    return None
+
+
 def extract_layer_color(layer):
     """
     Extract color from a MapLibre style layer.

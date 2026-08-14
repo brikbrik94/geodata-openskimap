@@ -9,6 +9,8 @@ from layer_metadata_extractor import (
     extract_outline_metadata,
     extract_layer_icon,
     determine_part_kind,
+    extract_part_color,
+    extract_categorized_items,
 )
 
 
@@ -179,6 +181,114 @@ class DeterminePartKindTests(unittest.TestCase):
 
     def test_unmapped_type_returns_none(self):
         self.assertIsNone(determine_part_kind({"type": "raster"}))
+
+
+class ExtractPartColorTests(unittest.TestCase):
+    def test_literal_color_is_fixed(self):
+        layer = {"type": "fill", "paint": {"fill-color": "#3085fe"}}
+        self.assertEqual(extract_part_color(layer, "fill"), {"mode": "fixed", "value": "#3085fe"})
+
+    def test_match_expression_is_categorized(self):
+        layer = {
+            "type": "circle",
+            "paint": {"circle-color": ["match", ["get", "spot_type"], "halfpipe", "#8e44ad", "#7f8c8d"]},
+        }
+        self.assertEqual(extract_part_color(layer, "circle"), "categorized")
+
+    def test_interpolate_expression_is_categorized(self):
+        layer = {
+            "type": "fill",
+            "paint": {"fill-color": ["interpolate", ["linear"], ["get", "eta"], 0, "#22c55e", 15, "#facc15"]},
+        }
+        self.assertEqual(extract_part_color(layer, "fill"), "categorized")
+
+    def test_case_wrapped_literal_resolves_to_fixed(self):
+        # Regression: ski-runs-downhill-casing's line-color is a "case" on
+        # "lit" (not difficulty_convention) -> falls to the else-branch,
+        # which is a plain literal string here. Must NOT be null.
+        layer = {
+            "type": "line",
+            "id": "ski-runs-downhill-casing",
+            "paint": {
+                "line-color": ["case", ["==", ["get", "lit"], True], "hsl(63, 100%, 76%)", "hsl(0, 0%, 100%)"],
+            },
+        }
+        self.assertEqual(
+            extract_part_color(layer, "outline"),
+            {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+        )
+
+    def test_case_wrapped_categorized_resolves_to_categorized(self):
+        # ski-runs-nordic-casing: opposite of downhill's casing, its case
+        # switches on difficulty_convention and resolves to a match expr.
+        layer = {
+            "type": "line",
+            "id": "ski-runs-nordic-casing",
+            "paint": {
+                "line-color": [
+                    "case",
+                    ["==", ["get", "difficulty_convention"], "europe"],
+                    ["match", ["get", "difficulty"], "novice", "hsl(125, 100%, 33%)", "hsl(0, 0%, 35%)"],
+                    ["match", ["get", "difficulty"], "novice", "hsl(125, 100%, 33%)", "hsl(0, 0%, 35%)"],
+                ],
+            },
+        }
+        self.assertEqual(extract_part_color(layer, "outline"), "categorized")
+
+    def test_unset_property_returns_none(self):
+        layer = {"type": "symbol", "layout": {"icon-image": "x"}, "paint": {}}
+        self.assertIsNone(extract_part_color(layer, "icon"))
+
+    def test_data_driven_expression_returns_none(self):
+        layer = {"type": "fill", "paint": {"fill-color": ["get", "color"]}}
+        self.assertIsNone(extract_part_color(layer, "fill"))
+
+    def test_kind_without_color_field_returns_none(self):
+        layer = {"type": "line", "paint": {"line-color": "#fff"}}
+        self.assertIsNone(extract_part_color(layer, "nonexistent-kind"))
+
+
+class ExtractCategorizedItemsTests(unittest.TestCase):
+    def test_interpolate_numeric_ranges(self):
+        layer = {
+            "type": "fill",
+            "paint": {"fill-color": ["interpolate", ["linear"], ["get", "eta"], 0, "#22c55e", 15, "#facc15"]},
+        }
+        self.assertEqual(
+            extract_categorized_items(layer, "fill"),
+            [{"label": "0-15 min", "color": "#22c55e"}, {"label": "15+ min", "color": "#facc15"}],
+        )
+
+    def test_match_string_values_with_fallback(self):
+        layer = {
+            "type": "circle",
+            "paint": {"circle-color": ["match", ["get", "spot_type"], "halfpipe", "#8e44ad", "#7f8c8d"]},
+        }
+        self.assertEqual(
+            extract_categorized_items(layer, "circle"),
+            [{"label": "Halfpipe", "color": "#8e44ad"}, {"label": "Sonstige", "color": "#7f8c8d"}],
+        )
+
+    def test_non_categorized_returns_none(self):
+        layer = {"type": "fill", "paint": {"fill-color": "#3085fe"}}
+        self.assertIsNone(extract_categorized_items(layer, "fill"))
+
+    def test_case_wrapped_categorized_resolves_items(self):
+        layer = {
+            "type": "line",
+            "paint": {
+                "line-color": [
+                    "case",
+                    ["==", ["get", "difficulty_convention"], "europe"],
+                    ["match", ["get", "difficulty"], "novice", "hsl(125, 100%, 33%)", "hsl(0, 0%, 35%)"],
+                    ["match", ["get", "difficulty"], "novice", "hsl(125, 100%, 33%)", "hsl(0, 0%, 35%)"],
+                ],
+            },
+        }
+        self.assertEqual(
+            extract_categorized_items(layer, "outline"),
+            [{"label": "Novice", "color": "hsl(125, 100%, 33%)"}, {"label": "Sonstige", "color": "hsl(0, 0%, 35%)"}],
+        )
 
 
 if __name__ == "__main__":
