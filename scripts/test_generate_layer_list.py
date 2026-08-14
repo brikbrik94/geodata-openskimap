@@ -79,6 +79,28 @@ class BuildRenderTests(unittest.TestCase):
             [{"label": "A", "color": "#111"}, {"label": "Sonstige", "color": "#222"}],
         )
 
+    def test_unparseable_categorized_color_warns_and_nulls_color_without_polluting_scale(self):
+        # extract_part_color's classifier and extract_categorized_items's
+        # parser can disagree: a malformed interpolate expression (here
+        # missing its stop/color pairs, len(expr) < 5) still classifies as
+        # "categorized" but extract_categorized_items returns None. Must not
+        # write items: None into scale_items (schema-invalid legend_sections
+        # per GEODATA_PLUGIN_STANDARD.md §5.6) and must not poison later
+        # drift-checks against that scale_id.
+        group_layers = [
+            {
+                "id": "malformed-fill",
+                "type": "fill",
+                "paint": {"fill-color": ["interpolate", ["linear"], ["get", "x"]]},
+            },
+        ]
+        scale_items = {}
+        with unittest.mock.patch("generate_layer_list.log_warn") as mock_warn:
+            render = _build_render(group_layers, "group-a", scale_items)
+            mock_warn.assert_called_once()
+        self.assertIsNone(render[0]["color"])
+        self.assertNotIn("test-scale", scale_items)
+
     def test_drifted_items_within_group_logs_warning_keeps_first(self):
         group_layers = [
             {"id": "a1", "type": "fill", "paint": {"fill-color": ["match", ["get", "x"], "a", "#111", "#222"]}},

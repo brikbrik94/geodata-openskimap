@@ -138,6 +138,13 @@ def _build_render(group_layers, group_key, scale_items):
       - missing (§5.5 error case — a categorized color with no configured
         scale): log_warn(...), color set to None instead of a scale
         reference. No build abort.
+      - configured, but extract_categorized_items can't parse the actual
+        color expression into items (extract_part_color's classifier and
+        extract_categorized_items's parser can disagree on malformed
+        expressions): log_warn(...), color set to None instead of a scale
+        reference with null items — never write items: null into
+        scale_items/legend_sections (§5.6 requires items to be an array).
+        No build abort.
 
     Args:
         group_layers (list): MapLibre layer objects belonging to one group,
@@ -168,15 +175,23 @@ def _build_render(group_layers, group_key, scale_items):
                 color = None
             else:
                 items = extract_categorized_items(layer, kind)
-                if scale_id not in scale_items:
-                    scale_items[scale_id] = items
-                elif items != scale_items[scale_id]:
+                if items is None:
                     log_warn(
-                        f"legend_scale_id '{scale_id}': layer '{layer.get('id')}' in group "
-                        f"'{group_key}' has legend items differing from the first layer "
-                        f"sharing this scale — layer-list.json will use the first layer's items."
+                        f"group '{group_key}': layer '{layer.get('id')}' has a categorized "
+                        f"color that could not be parsed into legend items — color set to null."
                     )
-                color = {"mode": "scale", "scale_id": scale_id}
+                    color = None
+                elif scale_id not in scale_items:
+                    scale_items[scale_id] = items
+                    color = {"mode": "scale", "scale_id": scale_id}
+                else:
+                    if items != scale_items[scale_id]:
+                        log_warn(
+                            f"legend_scale_id '{scale_id}': layer '{layer.get('id')}' in group "
+                            f"'{group_key}' has legend items differing from the first layer "
+                            f"sharing this scale — layer-list.json will use the first layer's items."
+                        )
+                    color = {"mode": "scale", "scale_id": scale_id}
 
         parts.append({
             "kind": kind,

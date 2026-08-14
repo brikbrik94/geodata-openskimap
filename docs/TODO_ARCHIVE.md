@@ -123,3 +123,10 @@ Erledigt am 2026-08-14: `scripts/layer_metadata_extractor.py` und
 `scripts/generate_layer_list.py` vollständig auf das
 `render: Array<Part>`-Modell umgestellt (Design:
 `docs/superpowers/specs/2026-08-14-render-parts-v2.0-migration-design.md`).
+
+## `extract_layer_metadata()` in `layer_metadata_extractor.py` ist toter Code
+
+Erledigt am 2026-08-14: Funktion im Zuge der v2.0-Migration entfernt (siehe
+`docs/superpowers/specs/2026-08-14-render-parts-v2.0-migration-design.md`,
+Entscheidung 2) — sie verkörperte exakt das alte Primär-Layer-Modell, das die
+Migration ablöst.

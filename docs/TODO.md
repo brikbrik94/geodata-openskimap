@@ -33,18 +33,16 @@ leer (alle Punkte erledigt, siehe `docs/TODO_ARCHIVE.md`) — die erste
 Version wird als Nächstes geschnitten (Versionskonstante festlegen,
 `CHANGELOG.md` mit diesem Stand als erstem Eintrag anlegen).
 
-## `extract_layer_metadata()` in `layer_metadata_extractor.py` ist toter Code
+## `circle-stroke-color`/`circle-stroke-width` im render-Part-Modell nachziehen
 
-`generate_layer_list.py` reimplementiert die Gruppen-Metadaten-Logik lokal
-(`_group_metadata`), weil openskimap-Gruppen mehrere `source-layer`s
-umspannen können — `extract_layer_metadata()` (Single-`source-layer`-Variante,
-für den `geodata-overlays`-Fall gedacht) wird nirgends in diesem Repo
-aufgerufen. Seit dem v1.1-Feld-Update (`width`/`dasharray`/`outline_*`/`icon`,
-siehe `docs/superpowers/specs/2026-08-12-layer-list-legend-scale-v1.1-design.md`)
-ist sie zusätzlich veraltet: sie kennt diese Felder nicht. Entscheiden und
-umsetzen: entweder entfernen, oder auf den aktuellen Stand bringen, falls
-sie doch als Referenz/Portierungs-Vorlage für andere `geodata-*`-Repos
-gebraucht wird (`scripts/layer_metadata_extractor.py:450-504`).
+Der `circle`-Kind im v2.0-`Part`-Schema hat kein Feld für `circle-stroke-color`/
+`circle-stroke-width` (betrifft `ski-areas-alpine/-nordic-circle` und
+`ski-spots` in `styles/openskimap-style.json`) — Standard-seitige Lücke,
+gemeldet als
+[geodata-plugin-standard#3](https://github.com/brikbrik94/geodata-plugin-standard/issues/3).
+Sobald der Standard dafür Felder ergänzt: `scripts/layer_metadata_extractor.py`
+(`PART_FIELDS_BY_KIND`, neue `extract_part_stroke_color`/`extract_part_stroke_width`
+o.ä.) und `scripts/generate_layer_list.py` entsprechend erweitern.
 
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 
