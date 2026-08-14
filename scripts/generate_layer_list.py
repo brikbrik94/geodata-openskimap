@@ -19,10 +19,12 @@ per-group dataset config or source file: `template` is set to the
 group key itself (each of our 8 groups is its own category),
 `original_file` points at the shared GeoPackage source. `source_layer`
 holds the group's first (file-order) source-layer for spec compliance;
-`source_layers` (plural, not in the spec) additionally lists every
-distinct source-layer the group actually spans, since collapsing that
-to a single string would lose information for groups split across
-point/poly or line/poly PMTiles layers.
+`source_layers` and `variants` (both plural, not in the spec) are
+locally-proposed extensions tracked as geodata-plugin-standard#4.
+`source_layers` lists every distinct source-layer the group spans, since
+collapsing to a single string would lose information for groups split
+across point/poly or line/poly PMTiles layers; `variants` describes
+mutually-exclusive style-layer combinations per MapLibre `filter`.
 """
 import json
 import os
@@ -332,7 +334,9 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
 
     Returns:
         dict: {"version": "2.0", "styles": [...], "legend_sections": [...] | None}
-            per GEODATA_PLUGIN_STANDARD.md v2.0.0 §5
+            per GEODATA_PLUGIN_STANDARD.md v2.0.0 §5. Each group additionally
+            carries the locally-proposed `variants` field (not part of the
+            v2.0.0 standard; tracked as geodata-plugin-standard#4).
 
     Raises:
         KeyError: a style layer's id is not in GROUP_MAP (see module docstring)

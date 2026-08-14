@@ -14,15 +14,25 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   laut ihrem MapLibre `filter` gegenseitig ausschließen (z. B. Loipen "gespurt"/"ungespurt",
   Lifte Status×Zugang) — verhindert, dass ein naiver Legenden-Renderer sie deckungsgleich
   übereinander zeichnet. Betrifft `ski-runs-nordic` (2 Varianten), `ski-runs-downhill`
-  (4 Varianten), `ski-lifts` (4 Varianten). Rein additiv, kein Versionssprung. Vorgeschlagen
+  (4 Varianten), `ski-lifts` (4 Varianten). Vorgeschlagen
   als [geodata-plugin-standard#4](https://github.com/brikbrik94/geodata-plugin-standard/issues/4)
   (noch nicht Teil des Standards).
+
+### Changed
+- **Konsumen-Inkompatibilität**: das `render`-Array für `ski-runs-nordic`, `ski-runs-downhill`
+  und `ski-lifts` ist geschrumpft, weil Style-Layer, die sich gegenseitig ausschließen,
+  jetzt aus `render` in `variants[].render` migriert sind: Legenden-Renderer, die das neue
+  `variants`-Feld ignorieren, zeigen für diese drei Gruppen eine unvollständige Legende
+  (ohne Loipen-/Pisten-/Lift-Status-Layer). Auch: das Feld `style_layers` listete schon
+  vorher `snowmaking`-Layer auf, obwohl kein Part dafür in `render`/`variants` existiert,
+  was Konsumenten, die `style_layers` positionell mit `render` korrelieren, verwirrt.
 
 ### Known Issues
 - `snowmaking`-Layer (`ski-runs-downhill-snowmaking`, `ski-runs-nordic-snowmaking`) sind aus
   `render`/`variants` komplett entfernt — passen als unabhängiger, mit jeder
   Präparierungsstufe gleichzeitig auftretender Zusatz-Marker nicht ins
-  geteilt/Variante-Schema. Zurückgestellt, siehe `docs/TODO.md`.
+  geteilt/Variante-Schema. Datenverlust bewusst in Kauf genommen, bis das Standard-Schema
+  für solche orthogonalen Marker wächst (siehe `docs/TODO.md`).
 
 ## [Unreleased] - 2026-08-14 08:36
 
