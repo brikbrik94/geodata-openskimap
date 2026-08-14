@@ -406,6 +406,35 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         shared_kinds = sorted(p["kind"] for p in lifts["render"])
         self.assertEqual(shared_kinds, ["icon", "text"])
 
+        # Verify lift-status-scale coverage on line Parts in each variant
+        # Variant 0: ski-lifts-line (width 3.0)
+        line_parts_v0 = [p for p in lifts["variants"][0]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(line_parts_v0), 1)
+        self.assertEqual(line_parts_v0[0]["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
+        self.assertEqual(line_parts_v0[0]["opacity"], 0.8)
+        self.assertEqual(line_parts_v0[0]["width"], 3.0)
+
+        # Variant 1: ski-lifts-line-other (width 1.98)
+        line_parts_v1 = [p for p in lifts["variants"][1]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(line_parts_v1), 1)
+        self.assertEqual(line_parts_v1[0]["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
+        self.assertEqual(line_parts_v1[0]["opacity"], 0.8)
+        self.assertEqual(line_parts_v1[0]["width"], 1.98)
+
+        # Variant 2: ski-lifts-line-private (width 3.0)
+        line_parts_v2 = [p for p in lifts["variants"][2]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(line_parts_v2), 1)
+        self.assertEqual(line_parts_v2[0]["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
+        self.assertEqual(line_parts_v2[0]["opacity"], 0.8)
+        self.assertEqual(line_parts_v2[0]["width"], 3.0)
+
+        # Variant 3: ski-lifts-line-private-other (width 1.98)
+        line_parts_v3 = [p for p in lifts["variants"][3]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(line_parts_v3), 1)
+        self.assertEqual(line_parts_v3[0]["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
+        self.assertEqual(line_parts_v3[0]["opacity"], 0.8)
+        self.assertEqual(line_parts_v3[0]["width"], 1.98)
+
     def test_groups_without_variants_config_are_unaffected(self):
         for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots", "ski-runs-skitour", "ski-runs-other"):
             group = self.groups_by_key[key]
