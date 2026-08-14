@@ -6,7 +6,7 @@ import unittest.mock
 
 sys.path.insert(0, os.path.dirname(__file__))
 import generate_layer_list
-from generate_layer_list import _build_render, _build_legend_sections, build_layer_list
+from generate_layer_list import _build_render, _build_legend_sections, build_layer_list, _build_render_and_variants
 
 STYLE_PATH = os.path.join(os.path.dirname(__file__), "..", "styles", "openskimap-style.json")
 
@@ -142,6 +142,81 @@ class BuildRenderTests(unittest.TestCase):
         self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "#2c3e50"})
 
 
+class BuildRenderAndVariantsTests(unittest.TestCase):
+    def setUp(self):
+        self._original_variants = generate_layer_list.GROUP_VARIANTS
+        self._original_exclude = generate_layer_list.GROUP_VARIANT_EXCLUDE
+
+    def tearDown(self):
+        generate_layer_list.GROUP_VARIANTS = self._original_variants
+        generate_layer_list.GROUP_VARIANT_EXCLUDE = self._original_exclude
+
+    def test_group_without_variants_config_returns_none_and_full_render(self):
+        generate_layer_list.GROUP_VARIANTS = {}
+        generate_layer_list.GROUP_VARIANT_EXCLUDE = {}
+        group_layers = [
+            {"id": "a-fill", "type": "fill", "paint": {"fill-color": "#111", "fill-opacity": 1}},
+        ]
+        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
+        self.assertIsNone(variants)
+        self.assertEqual(len(render), 1)
+
+    def test_variant_member_layers_split_from_shared_render(self):
+        generate_layer_list.GROUP_VARIANTS = {
+            "group-a": [
+                {"label": "Variant 1", "style_layer_ids": ["v1"]},
+                {"label": "Variant 2", "style_layer_ids": ["v2"]},
+            ]
+        }
+        generate_layer_list.GROUP_VARIANT_EXCLUDE = {}
+        group_layers = [
+            {"id": "shared", "type": "fill", "paint": {"fill-color": "#111"}},
+            {"id": "v1", "type": "line", "paint": {"line-color": "#222"}},
+            {"id": "v2", "type": "line", "paint": {"line-color": "#333"}},
+        ]
+        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
+        self.assertEqual(len(render), 1)
+        self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "#111"})
+        self.assertEqual(len(variants), 2)
+        self.assertEqual(variants[0]["label"], "Variant 1")
+        self.assertEqual(variants[0]["render"][0]["color"], {"mode": "fixed", "value": "#222"})
+        self.assertEqual(variants[1]["label"], "Variant 2")
+        self.assertEqual(variants[1]["render"][0]["color"], {"mode": "fixed", "value": "#333"})
+
+    def test_layer_can_belong_to_multiple_variants(self):
+        generate_layer_list.GROUP_VARIANTS = {
+            "group-a": [
+                {"label": "Variant 1", "style_layer_ids": ["shared-member"]},
+                {"label": "Variant 2", "style_layer_ids": ["shared-member", "v2"]},
+            ]
+        }
+        generate_layer_list.GROUP_VARIANT_EXCLUDE = {}
+        group_layers = [
+            {"id": "shared-member", "type": "line", "paint": {"line-color": "#111"}},
+            {"id": "v2", "type": "line", "paint": {"line-color": "#222"}},
+        ]
+        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
+        self.assertEqual(render, [])
+        self.assertEqual(len(variants[0]["render"]), 1)
+        self.assertEqual(len(variants[1]["render"]), 2)
+
+    def test_excluded_layer_absent_from_render_and_every_variant(self):
+        generate_layer_list.GROUP_VARIANTS = {
+            "group-a": [{"label": "Variant 1", "style_layer_ids": ["v1"]}]
+        }
+        generate_layer_list.GROUP_VARIANT_EXCLUDE = {"group-a": ["excluded"]}
+        group_layers = [
+            {"id": "shared", "type": "fill", "paint": {"fill-color": "#111"}},
+            {"id": "v1", "type": "line", "paint": {"line-color": "#222"}},
+            {"id": "excluded", "type": "line", "paint": {"line-color": "#333"}},
+        ]
+        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
+        self.assertEqual(len(render), 1)
+        self.assertEqual(len(variants[0]["render"]), 1)
+        all_colors = [p["color"] for p in render] + [p["color"] for v in variants for p in v["render"]]
+        self.assertNotIn({"mode": "fixed", "value": "#333"}, all_colors)
+
+
 class BuildLegendSectionsTests(unittest.TestCase):
     def setUp(self):
         self._original_labels = generate_layer_list.LEGEND_SCALE_LABELS
@@ -184,18 +259,10 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
 
     def test_ski_lifts_render_parts(self):
         lifts = self.groups_by_key["ski-lifts"]
+        # With variants, only shared layers (text, icon) are in render.
+        # Outline and line layers are in variants.
         kinds = [p["kind"] for p in lifts["render"]]
-        self.assertEqual(kinds, ["outline", "line", "line", "line", "line", "text", "icon"])
-
-        outline_part = lifts["render"][0]
-        self.assertEqual(outline_part["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
-        self.assertEqual(outline_part["width"], 5.0)
-
-        line_parts = [p for p in lifts["render"] if p["kind"] == "line"]
-        for part in line_parts:
-            self.assertEqual(part["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
-            self.assertEqual(part["opacity"], 0.8)
-        self.assertEqual([p["width"] for p in line_parts], [3.0, 1.98, 3.0, 1.98])
+        self.assertEqual(kinds, ["text", "icon"])
 
         icon_part = lifts["render"][-1]
         self.assertEqual(icon_part["kind"], "icon")
@@ -204,29 +271,40 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
 
     def test_ski_runs_downhill_casing_is_fixed_not_scale(self):
         downhill = self.groups_by_key["ski-runs-downhill"]
-        parts_by_layer = dict(zip(downhill["style_layers"], downhill["render"]))
+        # casing is shared (not in any variant), line is in variants
+        # Check that casing (shared, outline kind) has fixed color
+        outline_parts = [p for p in downhill["render"] if p["kind"] == "outline"]
+        self.assertEqual(len(outline_parts), 1)
         self.assertEqual(
-            parts_by_layer["ski-runs-downhill-casing"]["color"],
+            outline_parts[0]["color"],
             {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
         )
+        # Check that line in variant 0 has scale color
+        variant_0_line = [p for p in downhill["variants"][0]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(variant_0_line), 1)
         self.assertEqual(
-            parts_by_layer["ski-runs-downhill-line"]["color"],
+            variant_0_line[0]["color"],
             {"mode": "scale", "scale_id": "ski-difficulty-v1"},
         )
 
     def test_ski_runs_nordic_casing_carries_difficulty_scale(self):
         # Asymmetric vs. downhill: nordic's casing (not its line) is the
         # difficulty-colored part — design doc 2026-08-14, Untersuchung Punkt 1.
+        # casing is shared (not in any variant), line is in variant 0
         nordic = self.groups_by_key["ski-runs-nordic"]
-        parts_by_layer = dict(zip(nordic["style_layers"], nordic["render"]))
-        self.assertEqual(parts_by_layer["ski-runs-nordic-casing"]["kind"], "outline")
+        outline_parts = [p for p in nordic["render"] if p["kind"] == "outline"]
+        self.assertEqual(len(outline_parts), 1)
+        self.assertEqual(outline_parts[0]["kind"], "outline")
         self.assertEqual(
-            parts_by_layer["ski-runs-nordic-casing"]["color"],
+            outline_parts[0]["color"],
             {"mode": "scale", "scale_id": "ski-difficulty-v1"},
         )
-        self.assertEqual(parts_by_layer["ski-runs-nordic-line"]["kind"], "line")
+        # Check line in variant 0 (Gespurt)
+        variant_0_line = [p for p in nordic["variants"][0]["render"] if p["kind"] == "line"]
+        self.assertEqual(len(variant_0_line), 1)
+        self.assertEqual(variant_0_line[0]["kind"], "line")
         self.assertEqual(
-            parts_by_layer["ski-runs-nordic-line"]["color"],
+            variant_0_line[0]["color"],
             {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
         )
 
@@ -258,6 +336,85 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             [i["label"] for i in sections_by_id["ski-lift-status-v1"]["items"]],
             ["Operating", "Proposed", "Planned", "Construction", "Disused", "Abandoned", "Sonstige"],
         )
+
+    def test_ski_runs_nordic_has_two_mutually_exclusive_variants(self):
+        nordic = self.groups_by_key["ski-runs-nordic"]
+        self.assertEqual(len(nordic["variants"]), 2)
+        self.assertEqual(nordic["variants"][0]["label"], "Gespurt")
+        self.assertEqual(nordic["variants"][1]["label"], "Ungespurt")
+        self.assertEqual(nordic["variants"][0]["render"], [{
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+            "opacity": 1, "width": 3.0, "dasharray": None, "radius": None, "icon": None,
+        }])
+        self.assertEqual(nordic["variants"][1]["render"], [{
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+            "opacity": 1, "width": 3.0, "dasharray": [2, 4], "radius": None, "icon": None,
+        }])
+        shared_kinds = [p["kind"] for p in nordic["render"]]
+        self.assertEqual(shared_kinds, ["fill", "outline", "text"])
+
+    def test_ski_runs_nordic_snowmaking_excluded_entirely(self):
+        nordic = self.groups_by_key["ski-runs-nordic"]
+        all_parts = nordic["render"] + [p for v in nordic["variants"] for p in v["render"]]
+        self.assertNotIn(
+            {"kind": "line", "color": {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"},
+             "opacity": 1, "width": 1.5, "dasharray": None, "radius": None, "icon": None},
+            all_parts,
+        )
+        self.assertEqual(len(nordic["style_layers"]), 6)
+        total_parts = len(nordic["render"]) + sum(len(v["render"]) for v in nordic["variants"])
+        self.assertEqual(total_parts, 5)  # 6 style layers minus the excluded snowmaking one
+
+    def test_ski_runs_downhill_has_four_variants_gladed_ungroomed_overlap(self):
+        downhill = self.groups_by_key["ski-runs-downhill"]
+        labels = [v["label"] for v in downhill["variants"]]
+        self.assertEqual(
+            labels,
+            ["Präpariert", "Waldabfahrt", "Nicht präpariert", "Waldabfahrt, nicht präpariert"],
+        )
+        gladed_part = {
+            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+            "opacity": 1, "width": 3.0, "dasharray": [0.1, 4], "radius": None, "icon": None,
+        }
+        ungroomed_part = {
+            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+            "opacity": 1, "width": 3.0, "dasharray": [2, 4], "radius": None, "icon": None,
+        }
+        self.assertEqual(downhill["variants"][1]["render"], [gladed_part])
+        self.assertEqual(downhill["variants"][2]["render"], [ungroomed_part])
+        self.assertEqual(downhill["variants"][3]["render"], [gladed_part, ungroomed_part])
+
+    def test_ski_lifts_casing_only_in_operating_variants(self):
+        lifts = self.groups_by_key["ski-lifts"]
+        labels = [v["label"] for v in lifts["variants"]]
+        self.assertEqual(
+            labels,
+            ["In Betrieb", "Sonstiger Status", "In Betrieb (privat)", "Sonstiger Status (privat)"],
+        )
+        outline_part = {
+            "kind": "outline", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+            "opacity": 1, "width": 5.0, "dasharray": None, "radius": None, "icon": None,
+        }
+        self.assertIn(outline_part, lifts["variants"][0]["render"])
+        self.assertEqual(len(lifts["variants"][0]["render"]), 2)
+        self.assertEqual(len(lifts["variants"][1]["render"]), 1)
+        self.assertNotIn(outline_part, lifts["variants"][1]["render"])
+        self.assertIn(outline_part, lifts["variants"][2]["render"])
+        self.assertEqual(len(lifts["variants"][2]["render"]), 2)
+        self.assertEqual(len(lifts["variants"][3]["render"]), 1)
+        self.assertNotIn(outline_part, lifts["variants"][3]["render"])
+        shared_kinds = sorted(p["kind"] for p in lifts["render"])
+        self.assertEqual(shared_kinds, ["icon", "text"])
+
+    def test_groups_without_variants_config_are_unaffected(self):
+        for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots", "ski-runs-skitour", "ski-runs-other"):
+            group = self.groups_by_key[key]
+            self.assertIsNone(group["variants"])
+            self.assertEqual(len(group["render"]), len(group["style_layers"]))
+
+    def test_legend_sections_still_has_three_scales_after_variant_split(self):
+        sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
 
 
 if __name__ == "__main__":

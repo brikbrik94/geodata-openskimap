@@ -120,6 +120,46 @@ LEGEND_SCALE_LABELS = {
     "ski-spot-type-v1": "Spot-Typ",
 }
 
+# group key -> list of {"label": ..., "style_layer_ids": [...]} — mutually-exclusive
+# legend-rendering variants within the group (design doc 2026-08-14,
+# legend-variants; proposed upstream as geodata-plugin-standard#4, not yet
+# part of the standard). A style-layer-id CAN appear in more than one
+# variant's list (e.g. ski-lifts-casing, ski-runs-downhill-gladed/-ungroomed
+# — see design doc's per-group filter tables) when its MapLibre `filter`
+# overlaps more than one variant's defining condition. Style layers not
+# listed in ANY variant here (and not in GROUP_VARIANT_EXCLUDE) stay in the
+# group's shared `render`. Groups not listed here at all get `variants: None`
+# and unchanged `render` behavior.
+GROUP_VARIANTS = {
+    "ski-runs-nordic": [
+        {"label": "Gespurt", "style_layer_ids": ["ski-runs-nordic-line"]},
+        {"label": "Ungespurt", "style_layer_ids": ["ski-runs-nordic-ungroomed"]},
+    ],
+    "ski-runs-downhill": [
+        {"label": "Präpariert", "style_layer_ids": ["ski-runs-downhill-line"]},
+        {"label": "Waldabfahrt", "style_layer_ids": ["ski-runs-downhill-gladed"]},
+        {"label": "Nicht präpariert", "style_layer_ids": ["ski-runs-downhill-ungroomed"]},
+        {"label": "Waldabfahrt, nicht präpariert",
+         "style_layer_ids": ["ski-runs-downhill-gladed", "ski-runs-downhill-ungroomed"]},
+    ],
+    "ski-lifts": [
+        {"label": "In Betrieb", "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
+        {"label": "Sonstiger Status", "style_layer_ids": ["ski-lifts-line-other"]},
+        {"label": "In Betrieb (privat)",
+         "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line-private"]},
+        {"label": "Sonstiger Status (privat)", "style_layer_ids": ["ski-lifts-line-private-other"]},
+    ],
+}
+
+# group key -> style-layer-ids dropped entirely (neither shared render nor any
+# variant) — independent overlay attributes that don't fit the shared/variant
+# binary (design doc decision 3), e.g. snowmaking can co-occur with any
+# grooming variant. Deferred, see docs/TODO.md.
+GROUP_VARIANT_EXCLUDE = {
+    "ski-runs-nordic": ["ski-runs-nordic-snowmaking"],
+    "ski-runs-downhill": ["ski-runs-downhill-snowmaking"],
+}
+
 
 def _build_render(group_layers, group_key, scale_items):
     """
@@ -206,6 +246,59 @@ def _build_render(group_layers, group_key, scale_items):
     return parts
 
 
+def _build_render_and_variants(group_layers, group_key, scale_items):
+    """
+    Split a group's layers into a shared render list and, for groups
+    configured in GROUP_VARIANTS, a list of mutually-exclusive variants
+    (design doc 2026-08-14, legend-variants; geodata-plugin-standard#4).
+    Layers listed in GROUP_VARIANT_EXCLUDE[group_key] are dropped entirely
+    before any other processing.
+
+    Args:
+        group_layers (list): MapLibre layer objects belonging to one group,
+            in style order (unfiltered)
+        group_key (str): key into GROUP_VARIANTS/GROUP_VARIANT_EXCLUDE
+        scale_items (dict): passed through to _build_render unchanged — see
+            its docstring; the same dict is used for every _build_render
+            call below so cross-group AND cross-variant scale sharing keep
+            using the same first-seen/warn-on-drift logic
+
+    Returns:
+        tuple[list[dict], list[dict] | None]: (render, variants). variants
+            is None when group_key has no GROUP_VARIANTS entry (render is
+            then the complete Part list, unchanged from pre-variants
+            behavior). Otherwise render holds only the Parts whose style
+            layer is not a member of any variant.
+    """
+    excluded_ids = set(GROUP_VARIANT_EXCLUDE.get(group_key, []))
+    layers = [layer for layer in group_layers if layer.get("id") not in excluded_ids]
+
+    variant_defs = GROUP_VARIANTS.get(group_key)
+    if not variant_defs:
+        return _build_render(layers, group_key, scale_items), None
+
+    variant_member_ids = set()
+    for variant_def in variant_defs:
+        variant_member_ids.update(variant_def["style_layer_ids"])
+
+    shared_layers = [layer for layer in layers if layer.get("id") not in variant_member_ids]
+    render = _build_render(shared_layers, group_key, scale_items)
+
+    variants = [
+        {
+            "label": variant_def["label"],
+            "render": _build_render(
+                [layer for layer in layers if layer.get("id") in variant_def["style_layer_ids"]],
+                group_key,
+                scale_items,
+            ),
+        }
+        for variant_def in variant_defs
+    ]
+
+    return render, variants
+
+
 def _build_legend_sections(scale_items):
     """
     Turn the scale_id -> items map collected by _build_render into the
@@ -279,7 +372,9 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
 
     scale_items = {}
     for group_key, group in groups_dict.items():
-        group["render"] = _build_render(group_layers[group_key], group_key, scale_items)
+        render, variants = _build_render_and_variants(group_layers[group_key], group_key, scale_items)
+        group["render"] = render
+        group["variants"] = variants
 
     legend_sections = _build_legend_sections(scale_items)
 
