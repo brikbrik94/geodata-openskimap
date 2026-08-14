@@ -5,6 +5,25 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-14 15:26
+
+### Added
+- `dist/layer-list.json`: neues, lokal vorgeschlagenes Feld `variants` auf Gruppen-Ebene
+  (`scripts/generate_layer_list.py`, Design-Dokument
+  `docs/superpowers/specs/2026-08-14-legend-variants-design.md`) für Style-Layer, die sich
+  laut ihrem MapLibre `filter` gegenseitig ausschließen (z. B. Loipen "gespurt"/"ungespurt",
+  Lifte Status×Zugang) — verhindert, dass ein naiver Legenden-Renderer sie deckungsgleich
+  übereinander zeichnet. Betrifft `ski-runs-nordic` (2 Varianten), `ski-runs-downhill`
+  (4 Varianten), `ski-lifts` (4 Varianten). Rein additiv, kein Versionssprung. Vorgeschlagen
+  als [geodata-plugin-standard#4](https://github.com/brikbrik94/geodata-plugin-standard/issues/4)
+  (noch nicht Teil des Standards).
+
+### Known Issues
+- `snowmaking`-Layer (`ski-runs-downhill-snowmaking`, `ski-runs-nordic-snowmaking`) sind aus
+  `render`/`variants` komplett entfernt — passen als unabhängiger, mit jeder
+  Präparierungsstufe gleichzeitig auftretender Zusatz-Marker nicht ins
+  geteilt/Variante-Schema. Zurückgestellt, siehe `docs/TODO.md`.
+
 ## [Unreleased] - 2026-08-14 08:36
 
 ### Changed

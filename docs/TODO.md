@@ -53,3 +53,13 @@ zeigt die Datei als modifiziert, sobald `python3 -m unittest` gelaufen ist),
 ohne dass echte Arbeit dahintersteckt. Entscheiden und umsetzen: Datei aus
 dem Git-Tracking entfernen (`git rm --cached`) und `__pycache__/` zum
 `.gitignore` hinzufügen.
+
+## `snowmaking`-Layer haben kein Konzept im `render`/`variants`-Schema
+
+`ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking` sind seit der
+`variants`-Einführung (siehe `docs/superpowers/specs/2026-08-14-legend-variants-design.md`,
+Entscheidung 3) komplett aus `render`/`variants` ausgeschlossen (`GROUP_VARIANT_EXCLUDE` in
+`scripts/generate_layer_list.py`) — sie sind ein unabhängiger Zusatz-Marker (Beschneiung), der
+mit jeder Präparierungsstufe gleichzeitig auftreten kann, passt also weder ins "geteilt (immer)"
+noch ins "Variante (genau eine von mehreren)"-Schema. Braucht ein drittes, orthogonales Konzept
+(z. B. ein optionales `overlays`-Feld), sobald dafür Bedarf entsteht.
