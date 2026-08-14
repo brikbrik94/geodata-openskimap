@@ -116,3 +116,10 @@ auf `ski-runs-nordic-*` wurde durch die `case lit`-Expression vom echten
 Stylesheet ersetzt (Fill/Line/Ungroomed). Beispiel:
 `feature_id=6a6a6f940d135a95cf034a6e7ca99563a5364bd0` (`uses=nordic`,
 `difficulty=null`).
+
+## `layer-list.json` auf `geodata-plugin-standard` v2.0.0 (render-Parts-Modell) migrieren
+
+Erledigt am 2026-08-14: `scripts/layer_metadata_extractor.py` und
+`scripts/generate_layer_list.py` vollständig auf das
+`render: Array<Part>`-Modell umgestellt (Design:
+`docs/superpowers/specs/2026-08-14-render-parts-v2.0-migration-design.md`).

@@ -11,10 +11,23 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Submodul `geodata-plugin-standard` von v1.1.0 auf v2.0.0 gebumpt. **Breaking
   Change im Standard**: §5-Layer-Listen-Spezifikation von Einzel-Property-Paint
   (`color`/`width`/`dasharray`/`outline_*`) auf ein generisches
-  `render: Array<Part>`-Modell umgestellt, Schema-Version "2.0". Dieses Repo
-  erzeugt `dist/layer-list.json` noch nach dem alten v1.1-Schema (siehe
-  `docs/TODO.md`) — die Extractor-Skripte sind noch nicht auf das neue Modell
-  migriert.
+  `render: Array<Part>`-Modell umgestellt, Schema-Version "2.0".
+- `dist/layer-list.json` auf das neue Schema migriert (`scripts/layer_metadata_extractor.py`,
+  `scripts/generate_layer_list.py`, Design-Dokument
+  `docs/superpowers/specs/2026-08-14-render-parts-v2.0-migration-design.md`):
+  jeder Style-Layer einer Gruppe wird jetzt unabhängig zu einem `Part` im
+  `render`-Array (kein Primär-Layer-Merge mehr), `color` wird zum
+  `{mode, value|scale_id}`-Objekt. Zwei neue zentrale Farbskalen
+  `ski-lift-status-v1` ("Lift-Status") und `ski-spot-type-v1` ("Spot-Typ"),
+  die in v1.1 nur als ungruppierte `legend_items` ohne Skalen-Kennung
+  vorlagen. `"version": "1.1"` → `"2.0"`.
+
+### Known Issues
+- `circle-stroke-color`/`circle-stroke-width` (auf `ski-areas-*-circle` und
+  `ski-spots`) haben im neuen `Part`-Modell kein Feld — Standard-seitige
+  Lücke, gemeldet als
+  [geodata-plugin-standard#3](https://github.com/brikbrik94/geodata-plugin-standard/issues/3).
+  Datenverlust bewusst in Kauf genommen, bis der Standard nachzieht.
 
 ## [2.0.0] - 2026-08-12
 
