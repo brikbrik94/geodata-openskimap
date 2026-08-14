@@ -46,6 +46,18 @@ umsetzen: entweder entfernen, oder auf den aktuellen Stand bringen, falls
 sie doch als Referenz/Portierungs-Vorlage für andere `geodata-*`-Repos
 gebraucht wird (`scripts/layer_metadata_extractor.py:450-504`).
 
+## `layer-list.json` auf `geodata-plugin-standard` v2.0.0 (render-Parts-Modell) migrieren
+
+Submodul `geodata-plugin-standard` wurde am 2026-08-14 auf v2.0.0 gebumpt
+(siehe `CHANGELOG.md`). §5 des Standards wurde von Einzel-Property-Paint
+(`color`/`width`/`dasharray`/`outline_color`/`outline_width`) auf ein
+generisches `render: Array<Part>`-Modell umgestellt, Schema-Version "2.0".
+`scripts/layer_metadata_extractor.py` und `scripts/generate_layer_list.py`
+erzeugen `dist/layer-list.json` aktuell noch nach dem alten v1.1-Schema
+(Einzel-Property-Felder, `"version": "1.1"`). Migration auf das neue Modell
+entscheiden und umsetzen, inkl. Anpassung von `test_layer_metadata_extractor`
+und `test_generate_layer_list`.
+
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 
 `scripts/ci/__pycache__/utils.cpython-313.pyc` ist im Repo eingecheckt

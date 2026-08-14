@@ -5,6 +5,17 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-14 08:36
+
+### Changed
+- Submodul `geodata-plugin-standard` von v1.1.0 auf v2.0.0 gebumpt. **Breaking
+  Change im Standard**: §5-Layer-Listen-Spezifikation von Einzel-Property-Paint
+  (`color`/`width`/`dasharray`/`outline_*`) auf ein generisches
+  `render: Array<Part>`-Modell umgestellt, Schema-Version "2.0". Dieses Repo
+  erzeugt `dist/layer-list.json` noch nach dem alten v1.1-Schema (siehe
+  `docs/TODO.md`) — die Extractor-Skripte sind noch nicht auf das neue Modell
+  migriert.
+
 ## [2.0.0] - 2026-08-12
 
 ### Changed
