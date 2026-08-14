@@ -32,13 +32,14 @@ sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), "ci"))
 from utils import log_warn
 from layer_metadata_extractor import (
-    extract_layer_color,
-    extract_layer_opacity,
-    extract_layer_width,
-    extract_layer_dasharray,
-    extract_outline_metadata,
-    extract_layer_icon,
-    extract_legend_items,
+    determine_part_kind,
+    extract_part_color,
+    extract_categorized_items,
+    extract_part_opacity,
+    extract_part_width,
+    extract_part_dasharray,
+    extract_part_radius,
+    extract_part_icon,
 )
 
 SOURCE_GPKG_REL_PATH = "data/src/openskidata.gpkg"
@@ -98,118 +99,117 @@ GROUP_NAMES = {
     "ski-lifts": "Lifte",
 }
 
-# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v1.1.0
-# §5.5/§5.6). All four run-category groups render fill-color from the same
-# difficulty match expression (verified byte-identical against
-# styles/openskimap-style.json), so they share one central legend instead of
-# duplicating identical legend_items four times.
+# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v2.0.0
+# §5.5). All four run-category groups render categorized colors from the
+# same difficulty match expression (verified byte-identical against
+# styles/openskimap-style.json — see design doc 2026-08-14), so they share
+# one central legend. ski-lifts (status) and ski-spots (spot_type) each
+# get their own scale, newly introduced with the v2.0 migration (v1.1 only
+# had ungrouped per-group legend_items for these two).
 GROUP_LEGEND_SCALE = {
     "ski-runs-downhill": "ski-difficulty-v1",
     "ski-runs-nordic": "ski-difficulty-v1",
     "ski-runs-skitour": "ski-difficulty-v1",
     "ski-runs-other": "ski-difficulty-v1",
+    "ski-lifts": "ski-lift-status-v1",
+    "ski-spots": "ski-spot-type-v1",
 }
 LEGEND_SCALE_LABELS = {
     "ski-difficulty-v1": "Schwierigkeitsgrade",
+    "ski-lift-status-v1": "Lift-Status",
+    "ski-spot-type-v1": "Spot-Typ",
 }
 
 
-def _group_metadata(group_layers):
-    """Same fill > line > circle > (symbol/icon) primary-layer selection as
-    layer_metadata_extractor.extract_layer_metadata, but over an already
-    collected list of layers instead of filtering style_data by a single
-    source-layer name (a group here can span several).
-
-    Layers whose id ends in "-casing" or "-outline" are never chosen as the
-    primary layer (their line-color/line-width instead become
-    outline_color/outline_width, see extract_outline_metadata) — otherwise a
-    casing layer that happens to appear first in the style (e.g.
-    ski-lifts-casing before ski-lifts-line) would incorrectly become the
-    group's primary color/type, out of sync with legend_items."""
-    layer_type_priority = {"fill": 4, "line": 3, "circle": 2, "symbol": 1}
-
-    def is_outline_layer(layer):
-        layer_id = layer.get("id", "")
-        return layer.get("type") == "line" and (
-            layer_id.endswith("-casing") or layer_id.endswith("-outline")
-        )
-
-    primary_layer = None
-    for layer in group_layers:
-        if is_outline_layer(layer):
-            continue
-        layer_type = layer.get("type")
-        if layer_type not in layer_type_priority:
-            continue
-        if primary_layer is None or layer_type_priority[layer_type] > layer_type_priority[primary_layer.get("type")]:
-            primary_layer = layer
-
-    if primary_layer is None:
-        return None
-
-    primary_type = primary_layer.get("type")
-    if primary_type == "symbol" and "icon-image" in primary_layer.get("layout", {}):
-        primary_type = "icon"
-
-    outline = extract_outline_metadata(group_layers)
-
-    return {
-        "type": primary_type,
-        "color": extract_layer_color(primary_layer),
-        "opacity": extract_layer_opacity(primary_layer),
-        "width": extract_layer_width(primary_layer),
-        "dasharray": extract_layer_dasharray(primary_layer),
-        "outline_color": outline["outline_color"],
-        "outline_width": outline["outline_width"],
-        "icon": extract_layer_icon(primary_layer),
-        "legend_items": extract_legend_items(group_layers),
-    }
-
-
-def _build_legend_sections(groups_dict):
+def _build_render(group_layers, group_key, scale_items):
     """
-    Collapse per-group legend_items into one shared top-level entry per
-    distinct legend_scale_id (GEODATA_PLUGIN_STANDARD.md v1.1.0 §5.5/§5.6).
+    Build the render:Array<Part> list for one group (GEODATA_PLUGIN_STANDARD.md
+    v2.0.0 §5.3): one Part per layer in group_layers, in style order. Layers
+    without a mapped kind (determine_part_kind returns None) are skipped, so
+    render can be shorter than group_layers.
 
-    Sets legend_scale_id on every group (None if GROUP_LEGEND_SCALE has no
-    entry for it) and, for groups with a configured scale, nulls their
-    legend_items — the values live centrally in the returned list instead.
-    If two groups share a legend_scale_id but produced different
-    legend_items, logs a warning (does not raise — a standard document
-    can't mandate a build abort in consuming repos, §5.5) and keeps the
-    first group's items.
+    A Part whose color is categorized (extract_part_color returns
+    "categorized") looks up GROUP_LEGEND_SCALE[group_key]:
+      - configured: color becomes {"mode": "scale", "scale_id": ...}; the
+        Part's legend items are recorded into scale_items[scale_id] on
+        first occurrence. A later Part (in this group or any other) sharing
+        the same scale_id with different items logs a warning instead of
+        raising (§5.5) — first-seen items win.
+      - missing (§5.5 error case — a categorized color with no configured
+        scale): log_warn(...), color set to None instead of a scale
+        reference. No build abort.
 
     Args:
-        groups_dict (dict): group_key -> group dict, mutated in place
+        group_layers (list): MapLibre layer objects belonging to one group,
+            in style order
+        group_key (str): key into GROUP_LEGEND_SCALE
+        scale_items (dict): scale_id -> [{"label", "color"}, ...], mutated
+            in place; shared across all groups so cross-group scale sharing
+            and within-group multi-Part scale sharing use the same
+            first-seen/warn-on-drift logic
 
     Returns:
-        list[dict] | None: [{"id", "label", "items"}, ...] in
-        first-encounter order, or None if no group has a configured scale
+        list[dict]: Part dicts per §5.3
     """
-    sections = {}
-    for group_key, group in groups_dict.items():
-        scale_id = GROUP_LEGEND_SCALE.get(group_key)
-        group["legend_scale_id"] = scale_id
-        if scale_id is None:
+    parts = []
+    for layer in group_layers:
+        kind = determine_part_kind(layer)
+        if kind is None:
             continue
 
-        items = group.get("legend_items")
-        if scale_id not in sections:
-            sections[scale_id] = {
-                "id": scale_id,
-                "label": LEGEND_SCALE_LABELS[scale_id],
-                "items": items,
-            }
-        elif items != sections[scale_id]["items"]:
-            log_warn(
-                f"legend_scale_id '{scale_id}': group '{group_key}' legend_items "
-                f"differ from the first group sharing this scale — "
-                f"layer-list.json will use the first group's items."
-            )
+        color = extract_part_color(layer, kind)
+        if color == "categorized":
+            scale_id = GROUP_LEGEND_SCALE.get(group_key)
+            if scale_id is None:
+                log_warn(
+                    f"group '{group_key}': layer '{layer.get('id')}' has a categorized "
+                    f"color but no GROUP_LEGEND_SCALE entry — color set to null."
+                )
+                color = None
+            else:
+                items = extract_categorized_items(layer, kind)
+                if scale_id not in scale_items:
+                    scale_items[scale_id] = items
+                elif items != scale_items[scale_id]:
+                    log_warn(
+                        f"legend_scale_id '{scale_id}': layer '{layer.get('id')}' in group "
+                        f"'{group_key}' has legend items differing from the first layer "
+                        f"sharing this scale — layer-list.json will use the first layer's items."
+                    )
+                color = {"mode": "scale", "scale_id": scale_id}
 
-        group["legend_items"] = None
+        parts.append({
+            "kind": kind,
+            "color": color,
+            "opacity": extract_part_opacity(layer, kind),
+            "width": extract_part_width(layer, kind),
+            "dasharray": extract_part_dasharray(layer, kind),
+            "radius": extract_part_radius(layer, kind),
+            "icon": extract_part_icon(layer, kind),
+        })
 
-    return list(sections.values()) if sections else None
+    return parts
+
+
+def _build_legend_sections(scale_items):
+    """
+    Turn the scale_id -> items map collected by _build_render into the
+    top-level legend_sections list (GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.6).
+
+    Args:
+        scale_items (dict): scale_id -> [{"label", "color"}, ...]
+
+    Returns:
+        list[dict] | None: [{"id", "label", "items"}, ...] in first-seen
+            order, or None if no Part referenced a scale.
+    """
+    if not scale_items:
+        return None
+
+    return [
+        {"id": scale_id, "label": LEGEND_SCALE_LABELS[scale_id], "items": items}
+        for scale_id, items in scale_items.items()
+    ]
 
 
 def build_layer_list(style_data, style_id, name, pmtiles_path):
@@ -223,7 +223,8 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
         pmtiles_path (str): path relative to dist/pmtiles/, e.g. "openskimap.pmtiles"
 
     Returns:
-        dict: {"version": "1.1", "styles": [...]} per the plugin standard schema
+        dict: {"version": "2.0", "styles": [...], "legend_sections": [...] | None}
+            per GEODATA_PLUGIN_STANDARD.md v2.0.0 §5
 
     Raises:
         KeyError: a style layer's id is not in GROUP_MAP (see module docstring)
@@ -261,23 +262,14 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
         group["style_layers"].append(layer_id)
         group_layers[group_key].append(layer)
 
+    scale_items = {}
     for group_key, group in groups_dict.items():
-        metadata = _group_metadata(group_layers[group_key])
-        if metadata:
-            group["type"] = metadata.get("type")
-            group["color"] = metadata.get("color")
-            group["opacity"] = metadata.get("opacity")
-            group["width"] = metadata.get("width")
-            group["dasharray"] = metadata.get("dasharray")
-            group["outline_color"] = metadata.get("outline_color")
-            group["outline_width"] = metadata.get("outline_width")
-            group["icon"] = metadata.get("icon")
-            group["legend_items"] = metadata.get("legend_items")
+        group["render"] = _build_render(group_layers[group_key], group_key, scale_items)
 
-    legend_sections = _build_legend_sections(groups_dict)
+    legend_sections = _build_legend_sections(scale_items)
 
     return {
-        "version": "1.1",
+        "version": "2.0",
         "styles": [
             {
                 "style_id": style_id,

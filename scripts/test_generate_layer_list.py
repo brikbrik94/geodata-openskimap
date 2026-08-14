@@ -6,98 +6,137 @@ import unittest.mock
 
 sys.path.insert(0, os.path.dirname(__file__))
 import generate_layer_list
-from generate_layer_list import _group_metadata, build_layer_list
+from generate_layer_list import _build_render, _build_legend_sections, build_layer_list
 
 STYLE_PATH = os.path.join(os.path.dirname(__file__), "..", "styles", "openskimap-style.json")
 
 
-class GroupMetadataCasingExclusionTests(unittest.TestCase):
-    def test_casing_layer_never_chosen_as_primary(self):
+class BuildRenderTests(unittest.TestCase):
+    def setUp(self):
+        self._original_scale_map = generate_layer_list.GROUP_LEGEND_SCALE
+        generate_layer_list.GROUP_LEGEND_SCALE = {"group-a": "test-scale"}
+
+    def tearDown(self):
+        generate_layer_list.GROUP_LEGEND_SCALE = self._original_scale_map
+
+    def test_casing_and_line_become_separate_outline_and_line_parts(self):
         group_layers = [
             {
                 "id": "ski-lifts-casing",
                 "type": "line",
-                "source-layer": "ski_lifts",
                 "paint": {
                     "line-color": "hsl(0, 0%, 100%)",
-                    "line-width": [
-                        "interpolate", ["linear"], ["zoom"],
-                        6, 1.8, 9, 2.8, 12, 4.0, 14, 5.0,
-                    ],
+                    "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.8, 14, 5.0],
                 },
             },
             {
                 "id": "ski-lifts-line",
                 "type": "line",
-                "source-layer": "ski_lifts",
                 "paint": {
-                    "line-color": [
-                        "match", ["get", "status"],
-                        "operating", "hsl(0, 82%, 42%)",
-                        "hsl(0, 53%, 42%)",
-                    ],
+                    "line-color": ["match", ["get", "status"], "operating", "hsl(0, 82%, 42%)", "hsl(0, 53%, 42%)"],
                     "line-opacity": 0.8,
-                    "line-width": [
-                        "interpolate", ["linear"], ["zoom"],
-                        6, 0.8, 9, 1.4, 12, 2.2, 14, 3.0,
-                    ],
+                    "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.8, 14, 3.0],
                 },
             },
         ]
-        metadata = _group_metadata(group_layers)
-        self.assertEqual(metadata["type"], "line")
-        self.assertIsNone(metadata["color"])  # match expression, not a literal string
-        self.assertEqual(metadata["opacity"], 0.8)
-        self.assertEqual(metadata["width"], 3.0)
-        self.assertEqual(metadata["outline_color"], "hsl(0, 0%, 100%)")
-        self.assertEqual(metadata["outline_width"], 5.0)
+        render = _build_render(group_layers, "group-without-scale", {})
+        self.assertEqual(len(render), 2)
+        self.assertEqual(render[0]["kind"], "outline")
+        self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
+        self.assertEqual(render[0]["width"], 5.0)
+        self.assertEqual(render[1]["kind"], "line")
+        self.assertEqual(render[1]["opacity"], 0.8)
+        self.assertEqual(render[1]["width"], 3.0)
 
-    def test_symbol_layer_with_icon_image_becomes_icon_type(self):
+    def test_categorized_color_without_scale_config_warns_and_nulls_color(self):
         group_layers = [
             {
-                "id": "lift-stations-icon",
-                "type": "symbol",
-                "source-layer": "ski_lift_stations",
-                "layout": {"icon-image": "aerialway-station-11"},
+                "id": "unconfigured-fill",
+                "type": "fill",
+                "paint": {"fill-color": ["match", ["get", "x"], "a", "#111", "#222"]},
             },
         ]
-        metadata = _group_metadata(group_layers)
-        self.assertEqual(metadata["type"], "icon")
-        self.assertEqual(metadata["icon"], "aerialway-station-11")
+        scale_items = {}
+        with unittest.mock.patch("generate_layer_list.log_warn") as mock_warn:
+            render = _build_render(group_layers, "group-without-scale", scale_items)
+            mock_warn.assert_called_once()
+        self.assertIsNone(render[0]["color"])
+        self.assertEqual(scale_items, {})
 
-    def test_text_only_symbol_layer_stays_symbol_type(self):
+    def test_categorized_color_with_scale_config_references_scale_id(self):
+        group_layers = [
+            {
+                "id": "a-fill",
+                "type": "fill",
+                "paint": {"fill-color": ["match", ["get", "x"], "a", "#111", "#222"]},
+            },
+        ]
+        scale_items = {}
+        render = _build_render(group_layers, "group-a", scale_items)
+        self.assertEqual(render[0]["color"], {"mode": "scale", "scale_id": "test-scale"})
+        self.assertEqual(
+            scale_items["test-scale"],
+            [{"label": "A", "color": "#111"}, {"label": "Sonstige", "color": "#222"}],
+        )
+
+    def test_drifted_items_within_group_logs_warning_keeps_first(self):
+        group_layers = [
+            {"id": "a1", "type": "fill", "paint": {"fill-color": ["match", ["get", "x"], "a", "#111", "#222"]}},
+            {"id": "a2", "type": "line", "paint": {"line-color": ["match", ["get", "x"], "a", "#999", "#222"]}},
+        ]
+        scale_items = {}
+        with unittest.mock.patch("generate_layer_list.log_warn") as mock_warn:
+            _build_render(group_layers, "group-a", scale_items)
+            mock_warn.assert_called_once()
+        self.assertEqual(
+            scale_items["test-scale"],
+            [{"label": "A", "color": "#111"}, {"label": "Sonstige", "color": "#222"}],
+        )
+
+    def test_skips_layers_without_mapped_kind(self):
+        group_layers = [{"id": "raster-1", "type": "raster", "paint": {}}]
+        self.assertEqual(_build_render(group_layers, "group-a", {}), [])
+
+    def test_symbol_layer_with_icon_image_becomes_icon_kind(self):
+        group_layers = [
+            {"id": "lift-stations-icon", "type": "symbol", "layout": {"icon-image": "aerialway-station-11"}},
+        ]
+        render = _build_render(group_layers, "group-a", {})
+        self.assertEqual(render[0]["kind"], "icon")
+        self.assertEqual(render[0]["icon"], "aerialway-station-11")
+
+    def test_text_only_symbol_layer_is_text_kind(self):
         group_layers = [
             {
                 "id": "ski-lifts-labels",
                 "type": "symbol",
-                "source-layer": "ski_lifts",
                 "layout": {"text-field": ["get", "name"]},
                 "paint": {"text-color": "#2c3e50"},
             },
         ]
-        metadata = _group_metadata(group_layers)
-        self.assertEqual(metadata["type"], "symbol")
-        self.assertIsNone(metadata["icon"])
+        render = _build_render(group_layers, "group-a", {})
+        self.assertEqual(render[0]["kind"], "text")
+        self.assertIsNone(render[0]["icon"])
+        self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "#2c3e50"})
 
-    def test_fill_still_wins_over_casing_and_line(self):
-        group_layers = [
-            {
-                "id": "ski-runs-downhill-casing",
-                "type": "line",
-                "source-layer": "ski_runs_downhill_line",
-                "paint": {"line-color": "hsl(0, 0%, 100%)", "line-width": 2.0},
-            },
-            {
-                "id": "ski-runs-downhill-fill",
-                "type": "fill",
-                "source-layer": "ski_runs_downhill_poly",
-                "paint": {"fill-color": "#22c55e", "fill-opacity": 0.25},
-            },
-        ]
-        metadata = _group_metadata(group_layers)
-        self.assertEqual(metadata["type"], "fill")
-        self.assertEqual(metadata["color"], "#22c55e")
-        self.assertIsNone(metadata["width"])  # fill layers have no line-width
+
+class BuildLegendSectionsTests(unittest.TestCase):
+    def setUp(self):
+        self._original_labels = generate_layer_list.LEGEND_SCALE_LABELS
+        generate_layer_list.LEGEND_SCALE_LABELS = {"test-scale": "Test"}
+
+    def tearDown(self):
+        generate_layer_list.LEGEND_SCALE_LABELS = self._original_labels
+
+    def test_builds_one_section_per_scale_id(self):
+        scale_items = {"test-scale": [{"label": "A", "color": "#111"}]}
+        sections = _build_legend_sections(scale_items)
+        self.assertEqual(
+            sections, [{"id": "test-scale", "label": "Test", "items": [{"label": "A", "color": "#111"}]}]
+        )
+
+    def test_empty_map_returns_none(self):
+        self.assertIsNone(_build_legend_sections({}))
 
 
 class BuildLayerListRealStyleTests(unittest.TestCase):
@@ -108,12 +147,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         cls.result = build_layer_list(style_data, "openskimap", "OpenSkiMap", "openskimap.pmtiles")
         cls.groups_by_key = {g["template"]: g for g in cls.result["styles"][0]["groups"]}
 
-    def test_ski_lifts_color_is_not_casing_white(self):
-        lifts = self.groups_by_key["ski-lifts"]
-        self.assertIsNone(lifts["color"])
-        self.assertEqual(lifts["width"], 3.0)
-        self.assertEqual(lifts["outline_color"], "hsl(0, 0%, 100%)")
-        self.assertEqual(lifts["outline_width"], 5.0)
+    def test_schema_version_is_2_0(self):
+        self.assertEqual(self.result["version"], "2.0")
 
     def test_group_names_are_german(self):
         self.assertEqual(self.groups_by_key["ski-runs-downhill"]["name"], "Pisten")
@@ -125,82 +160,82 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(self.groups_by_key["ski-spots"]["name"], "Ski-Spots")
         self.assertEqual(self.groups_by_key["ski-lifts"]["name"], "Lifte")
 
-    def test_schema_version_is_1_1(self):
-        self.assertEqual(self.result["version"], "1.1")
+    def test_ski_lifts_render_parts(self):
+        lifts = self.groups_by_key["ski-lifts"]
+        kinds = [p["kind"] for p in lifts["render"]]
+        self.assertEqual(kinds, ["outline", "line", "line", "line", "line", "text", "icon"])
 
-    def test_run_groups_share_one_legend_scale(self):
-        for key in ("ski-runs-downhill", "ski-runs-nordic", "ski-runs-skitour", "ski-runs-other"):
-            group = self.groups_by_key[key]
-            self.assertEqual(group["legend_scale_id"], "ski-difficulty-v1")
-            self.assertIsNone(group["legend_items"])
+        outline_part = lifts["render"][0]
+        self.assertEqual(outline_part["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
+        self.assertEqual(outline_part["width"], 5.0)
 
-    def test_groups_without_scale_have_null_scale_id(self):
-        self.assertIsNone(self.groups_by_key["ski-lifts"]["legend_scale_id"])
-        self.assertIsNone(self.groups_by_key["ski-spots"]["legend_scale_id"])
-        self.assertIsNotNone(self.groups_by_key["ski-lifts"]["legend_items"])
-        self.assertIsNotNone(self.groups_by_key["ski-spots"]["legend_items"])
+        line_parts = [p for p in lifts["render"] if p["kind"] == "line"]
+        for part in line_parts:
+            self.assertEqual(part["color"], {"mode": "scale", "scale_id": "ski-lift-status-v1"})
+            self.assertEqual(part["opacity"], 0.8)
+        self.assertEqual([p["width"] for p in line_parts], [3.0, 1.98, 3.0, 1.98])
 
-    def test_legend_sections_has_one_shared_difficulty_scale(self):
-        sections = self.result["legend_sections"]
-        self.assertEqual(len(sections), 1)
-        section = sections[0]
-        self.assertEqual(section["id"], "ski-difficulty-v1")
-        self.assertEqual(section["label"], "Schwierigkeitsgrade")
+        icon_part = lifts["render"][-1]
+        self.assertEqual(icon_part["kind"], "icon")
+        self.assertIsNone(icon_part["color"])
+        self.assertIsNone(icon_part["icon"])  # icon-image is a match expression, not literal
+
+    def test_ski_runs_downhill_casing_is_fixed_not_scale(self):
+        downhill = self.groups_by_key["ski-runs-downhill"]
+        parts_by_layer = dict(zip(downhill["style_layers"], downhill["render"]))
         self.assertEqual(
-            [item["label"] for item in section["items"]],
+            parts_by_layer["ski-runs-downhill-casing"]["color"],
+            {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+        )
+        self.assertEqual(
+            parts_by_layer["ski-runs-downhill-line"]["color"],
+            {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+        )
+
+    def test_ski_runs_nordic_casing_carries_difficulty_scale(self):
+        # Asymmetric vs. downhill: nordic's casing (not its line) is the
+        # difficulty-colored part — design doc 2026-08-14, Untersuchung Punkt 1.
+        nordic = self.groups_by_key["ski-runs-nordic"]
+        parts_by_layer = dict(zip(nordic["style_layers"], nordic["render"]))
+        self.assertEqual(parts_by_layer["ski-runs-nordic-casing"]["kind"], "outline")
+        self.assertEqual(
+            parts_by_layer["ski-runs-nordic-casing"]["color"],
+            {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+        )
+        self.assertEqual(parts_by_layer["ski-runs-nordic-line"]["kind"], "line")
+        self.assertEqual(
+            parts_by_layer["ski-runs-nordic-line"]["color"],
+            {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+        )
+
+    def test_ski_spots_uses_spot_type_scale(self):
+        spots = self.groups_by_key["ski-spots"]
+        self.assertEqual(len(spots["render"]), 1)
+        part = spots["render"][0]
+        self.assertEqual(part["kind"], "circle")
+        self.assertEqual(part["color"], {"mode": "scale", "scale_id": "ski-spot-type-v1"})
+        self.assertEqual(part["radius"], 4)
+
+    def test_ski_areas_alpine_circle_has_no_scale(self):
+        alpine = self.groups_by_key["ski-areas-alpine"]
+        circle_part = next(p for p in alpine["render"] if p["kind"] == "circle")
+        self.assertEqual(circle_part["color"], {"mode": "fixed", "value": "#3085fe"})
+        self.assertEqual(circle_part["radius"], 6)
+
+    def test_legend_sections_has_three_scales(self):
+        sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
+        self.assertEqual(sections_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
+        self.assertEqual(sections_by_id["ski-lift-status-v1"]["label"], "Lift-Status")
+        self.assertEqual(sections_by_id["ski-spot-type-v1"]["label"], "Spot-Typ")
+        self.assertEqual(
+            [i["label"] for i in sections_by_id["ski-difficulty-v1"]["items"]],
             ["Novice", "Easy", "Intermediate", "Advanced", "Expert", "Freeride", "Extreme", "Sonstige"],
         )
-
-
-class BuildLegendSectionsTests(unittest.TestCase):
-    def setUp(self):
-        self._original_scale_map = generate_layer_list.GROUP_LEGEND_SCALE
-        self._original_labels = generate_layer_list.LEGEND_SCALE_LABELS
-        generate_layer_list.GROUP_LEGEND_SCALE = {
-            "group-a": "test-scale",
-            "group-b": "test-scale",
-        }
-        generate_layer_list.LEGEND_SCALE_LABELS = {"test-scale": "Test"}
-
-    def tearDown(self):
-        generate_layer_list.GROUP_LEGEND_SCALE = self._original_scale_map
-        generate_layer_list.LEGEND_SCALE_LABELS = self._original_labels
-
-    def test_collapses_matching_scale_into_one_section(self):
-        groups_dict = {
-            "group-a": {"legend_items": [{"label": "Novice", "color": "green"}]},
-            "group-b": {"legend_items": [{"label": "Novice", "color": "green"}]},
-            "group-c": {"legend_items": None},
-        }
-        sections = generate_layer_list._build_legend_sections(groups_dict)
         self.assertEqual(
-            sections,
-            [{"id": "test-scale", "label": "Test", "items": [{"label": "Novice", "color": "green"}]}],
+            [i["label"] for i in sections_by_id["ski-lift-status-v1"]["items"]],
+            ["Operating", "Proposed", "Planned", "Construction", "Disused", "Abandoned", "Sonstige"],
         )
-        self.assertIsNone(groups_dict["group-a"]["legend_items"])
-        self.assertIsNone(groups_dict["group-b"]["legend_items"])
-        self.assertEqual(groups_dict["group-a"]["legend_scale_id"], "test-scale")
-        self.assertEqual(groups_dict["group-b"]["legend_scale_id"], "test-scale")
-        self.assertIsNone(groups_dict["group-c"]["legend_scale_id"])
-
-    def test_warns_but_does_not_raise_on_drifted_items(self):
-        groups_dict = {
-            "group-a": {"legend_items": [{"label": "Novice", "color": "green"}]},
-            "group-b": {"legend_items": [{"label": "Novice", "color": "DRIFTED"}]},
-        }
-        with unittest.mock.patch("generate_layer_list.log_warn") as mock_warn:
-            sections = generate_layer_list._build_legend_sections(groups_dict)
-            mock_warn.assert_called_once()
-        self.assertEqual(len(sections), 1)
-        self.assertEqual(sections[0]["items"], [{"label": "Novice", "color": "green"}])
-
-    def test_no_scale_configured_returns_none(self):
-        generate_layer_list.GROUP_LEGEND_SCALE = {}
-        groups_dict = {"group-a": {"legend_items": [{"label": "X", "color": "red"}]}}
-        sections = generate_layer_list._build_legend_sections(groups_dict)
-        self.assertIsNone(sections)
-        self.assertIsNone(groups_dict["group-a"]["legend_scale_id"])
-        self.assertEqual(groups_dict["group-a"]["legend_items"], [{"label": "X", "color": "red"}])
 
 
 if __name__ == "__main__":
