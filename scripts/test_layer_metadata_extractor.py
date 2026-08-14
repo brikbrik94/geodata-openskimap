@@ -4,155 +4,111 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
 from layer_metadata_extractor import (
-    extract_layer_width,
-    extract_layer_dasharray,
-    extract_outline_metadata,
-    extract_layer_icon,
     determine_part_kind,
     extract_part_color,
     extract_categorized_items,
+    extract_part_opacity,
+    extract_part_width,
+    extract_part_dasharray,
+    extract_part_radius,
+    extract_part_icon,
 )
 
 
-class ExtractLayerWidthTests(unittest.TestCase):
-    def test_literal_number(self):
-        layer = {"type": "line", "paint": {"line-width": 1.5}}
-        self.assertEqual(extract_layer_width(layer), 1.5)
+class ExtractPartOpacityTests(unittest.TestCase):
+    def test_literal_value(self):
+        layer = {"type": "fill", "paint": {"fill-opacity": 0.25}}
+        self.assertEqual(extract_part_opacity(layer, "fill"), 0.25)
 
     def test_interpolate_returns_highest_zoom_stop(self):
         layer = {
             "type": "line",
-            "paint": {
-                "line-width": [
-                    "interpolate", ["linear"], ["zoom"],
-                    6, 0.8, 9, 1.4, 12, 2.2, 14, 3.0,
-                ]
-            },
+            "paint": {"line-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.2, 14, 0.8]},
         }
-        self.assertEqual(extract_layer_width(layer), 3.0)
+        self.assertEqual(extract_part_opacity(layer, "line"), 0.8)
 
-    def test_non_line_layer_returns_none(self):
-        layer = {"type": "fill", "paint": {"line-width": 5}}
-        self.assertIsNone(extract_layer_width(layer))
+    def test_missing_property_defaults_to_1(self):
+        layer = {"type": "fill", "paint": {}}
+        self.assertEqual(extract_part_opacity(layer, "fill"), 1)
 
-    def test_missing_line_width_returns_none(self):
+    def test_kind_without_opacity_field_defaults_to_1(self):
+        layer = {"type": "line", "paint": {"line-opacity": 0.5}}
+        self.assertEqual(extract_part_opacity(layer, "nonexistent-kind"), 1)
+
+
+class ExtractPartWidthTests(unittest.TestCase):
+    def test_literal_number(self):
+        layer = {"type": "line", "paint": {"line-width": 1.5}}
+        self.assertEqual(extract_part_width(layer, "line"), 1.5)
+
+    def test_interpolate_returns_highest_zoom_stop(self):
+        layer = {
+            "type": "line",
+            "paint": {"line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.8, 14, 3.0]},
+        }
+        self.assertEqual(extract_part_width(layer, "outline"), 3.0)
+
+    def test_kind_without_width_field_returns_none(self):
+        layer = {"type": "fill", "paint": {"fill-color": "#000"}}
+        self.assertIsNone(extract_part_width(layer, "fill"))
+
+    def test_missing_property_returns_none(self):
         layer = {"type": "line", "paint": {}}
-        self.assertIsNone(extract_layer_width(layer))
-
-    def test_data_driven_expression_returns_none(self):
-        layer = {"type": "line", "paint": {"line-width": ["get", "width"]}}
-        self.assertIsNone(extract_layer_width(layer))
+        self.assertIsNone(extract_part_width(layer, "line"))
 
 
-class ExtractLayerDasharrayTests(unittest.TestCase):
+class ExtractPartDasharrayTests(unittest.TestCase):
     def test_literal_wrapped_array(self):
         layer = {"type": "line", "paint": {"line-dasharray": ["literal", [1, 3]]}}
-        self.assertEqual(extract_layer_dasharray(layer), [1, 3])
+        self.assertEqual(extract_part_dasharray(layer, "line"), [1, 3])
 
     def test_raw_two_element_array(self):
         layer = {"type": "line", "paint": {"line-dasharray": [1, 2]}}
-        self.assertEqual(extract_layer_dasharray(layer), [1, 2])
+        self.assertEqual(extract_part_dasharray(layer, "line"), [1, 2])
+
+    def test_kind_without_dasharray_field_returns_none(self):
+        layer = {"type": "fill", "paint": {}}
+        self.assertIsNone(extract_part_dasharray(layer, "fill"))
 
     def test_missing_field_returns_none(self):
         layer = {"type": "line", "paint": {}}
-        self.assertIsNone(extract_layer_dasharray(layer))
-
-    def test_non_two_element_literal_returns_none(self):
-        layer = {"type": "line", "paint": {"line-dasharray": ["literal", [1, 2, 3]]}}
-        self.assertIsNone(extract_layer_dasharray(layer))
+        self.assertIsNone(extract_part_dasharray(layer, "line"))
 
 
-class ExtractOutlineMetadataTests(unittest.TestCase):
-    def test_finds_casing_sibling(self):
-        group_layers = [
-            {
-                "id": "ski-lifts-casing",
-                "type": "line",
-                "paint": {
-                    "line-color": "hsl(0, 0%, 100%)",
-                    "line-width": [
-                        "interpolate", ["linear"], ["zoom"],
-                        6, 1.8, 9, 2.8, 12, 4.0, 14, 5.0,
-                    ],
-                },
-            },
-            {
-                "id": "ski-lifts-line",
-                "type": "line",
-                "paint": {"line-color": "hsl(0, 82%, 42%)"},
-            },
-        ]
-        result = extract_outline_metadata(group_layers)
-        self.assertEqual(
-            result, {"outline_color": "hsl(0, 0%, 100%)", "outline_width": 5.0}
-        )
+class ExtractPartRadiusTests(unittest.TestCase):
+    def test_literal_number(self):
+        layer = {"type": "circle", "paint": {"circle-radius": 4}}
+        self.assertEqual(extract_part_radius(layer, "circle"), 4)
 
-    def test_finds_outline_suffixed_sibling(self):
-        group_layers = [
-            {
-                "id": "water-protection-outline",
-                "type": "line",
-                "paint": {"line-color": "#1d4ed8", "line-width": 1.0},
-            },
-        ]
-        result = extract_outline_metadata(group_layers)
-        self.assertEqual(result, {"outline_color": "#1d4ed8", "outline_width": 1.0})
+    def test_interpolate_returns_highest_zoom_stop(self):
+        layer = {
+            "type": "circle",
+            "paint": {"circle-radius": ["interpolate", ["linear"], ["zoom"], 0, 1, 11, 6]},
+        }
+        self.assertEqual(extract_part_radius(layer, "circle"), 6)
 
-    def test_no_casing_layer_returns_none_pair(self):
-        group_layers = [
-            {"id": "ski-runs-skitour-fill", "type": "fill", "paint": {"fill-color": "#000"}},
-            {"id": "ski-runs-skitour-line", "type": "line", "paint": {"line-color": "#000"}},
-        ]
-        result = extract_outline_metadata(group_layers)
-        self.assertEqual(result, {"outline_color": None, "outline_width": None})
-
-    def test_expression_outline_color_is_none_but_width_still_resolves(self):
-        # Regression case: ski-runs-downhill-casing's line-color is a "case"
-        # expression (not a literal string), but its line-width is still a
-        # plain interpolate — outline_color must be None while outline_width
-        # still resolves.
-        group_layers = [
-            {
-                "id": "ski-runs-downhill-casing",
-                "type": "line",
-                "paint": {
-                    "line-color": ["case", ["==", ["get", "lit"], True], "hsl(63, 100%, 76%)", "hsl(0, 0%, 100%)"],
-                    "line-width": [
-                        "interpolate", ["linear"], ["zoom"],
-                        6, 1.8, 9, 2.8, 12, 4.0, 14, 5.0,
-                    ],
-                },
-            },
-        ]
-        result = extract_outline_metadata(group_layers)
-        self.assertEqual(result, {"outline_color": None, "outline_width": 5.0})
+    def test_kind_without_radius_field_returns_none(self):
+        layer = {"type": "line", "paint": {"line-width": 2}}
+        self.assertIsNone(extract_part_radius(layer, "line"))
 
 
-class ExtractLayerIconTests(unittest.TestCase):
+class ExtractPartIconTests(unittest.TestCase):
     def test_literal_icon_string(self):
         layer = {"type": "symbol", "layout": {"icon-image": "aerialway-station-11"}}
-        self.assertEqual(extract_layer_icon(layer), "aerialway-station-11")
+        self.assertEqual(extract_part_icon(layer, "icon"), "aerialway-station-11")
 
     def test_expression_icon_returns_none(self):
         layer = {
             "type": "symbol",
             "layout": {
-                "icon-image": [
-                    "match", ["get", "lift_type"],
-                    "gondola", "ski-gondola",
-                    "ski-chairlift-1",
-                ]
+                "icon-image": ["match", ["get", "lift_type"], "gondola", "ski-gondola", "ski-chairlift-1"]
             },
         }
-        self.assertIsNone(extract_layer_icon(layer))
+        self.assertIsNone(extract_part_icon(layer, "icon"))
 
-    def test_non_symbol_layer_returns_none(self):
-        layer = {"type": "fill", "layout": {"icon-image": "x"}}
-        self.assertIsNone(extract_layer_icon(layer))
-
-    def test_missing_icon_image_returns_none(self):
-        layer = {"type": "symbol", "layout": {"text-field": ["get", "name"]}}
-        self.assertIsNone(extract_layer_icon(layer))
+    def test_kind_without_icon_field_returns_none(self):
+        layer = {"type": "symbol", "layout": {"icon-image": "x"}}
+        self.assertIsNone(extract_part_icon(layer, "text"))
 
 
 class DeterminePartKindTests(unittest.TestCase):

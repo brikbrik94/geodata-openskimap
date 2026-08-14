@@ -2,34 +2,34 @@
 """
 Metadata extractor for MapLibre style layers.
 
-Extracts type, color, opacity, width, dasharray, outline color/width,
-icon, and legend items from style JSON layers to support automated
-legend rendering.
+Extracts, per style layer, the `Part` fields defined by
+GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.3 (kind, color, opacity, width,
+dasharray, radius, icon) to support automated legend rendering. One Part
+per style layer — no merging, no "primary layer" selection (§5.3: "Kein
+Merge mehrerer Style-Layer zu einem Part und keine Prioritäts-Auswahl
+eines 'Primär-Layers' mehr").
 
 Ported from geodata-overlays/scripts/layer_metadata_extractor.py per
-GEODATA_PLUGIN_STANDARD.md §5.6 ("einfach übernehmen"), with three
+GEODATA_PLUGIN_STANDARD.md §5.8 ("einfach übernehmen"), with two
 deviations required by openskimap's style but absent from the upstream
-original (geodata-overlays never uses any of them):
+original (geodata-overlays never uses either of them):
 
-1. extract_layer_color only returns a value when it is actually a string
-   (hex/rgba/hsl) — the spec documents `color` as `String | null`, but
-   openskimap's difficulty/status colors are nested case/match
-   expressions, not flat color strings.
-2. `circle` is supported alongside fill/line/symbol (circle-color/
-   circle-opacity, priority between line and symbol) — openskimap uses
-   circle layers for ski_spots and the low-zoom ski-area markers, which
-   the upstream priority map silently drops (source-layer ends up with no
-   type/color/opacity/legend_items at all when circle is its only layer
-   type, e.g. ski_spots).
-3. `extract_legend_items` resolves a top-level `case` expression before
-   looking for `interpolate`/`match` — openskimap's piste-difficulty fill
-   colors (`ski-runs-*-fill`) switch on `difficulty_convention`
-   (europe/japan/default) via `case`, each branch a `match` on
-   `difficulty`. Without this, these layers — the legend a ski map
-   actually needs — silently got `legend_items: null`. Resolution always
-   picks the "europe" branch (DACH is this project's target audience;
-   see CLAUDE.md), falling back to the `case`'s else-branch if no
-   `difficulty_convention == "europe"` condition is present.
+1. extract_part_color/extract_categorized_items resolve a top-level
+   `case` expression (openskimap's difficulty/status colors are nested
+   case/match expressions, not flat color strings or plain
+   interpolate/match) before classifying the paint property — resolution
+   always picks the "europe" branch (DACH is this project's target
+   audience; see CLAUDE.md), falling back to the case's else-branch if no
+   `difficulty_convention == "europe"` condition is present. Without
+   this, e.g. `ski-runs-downhill-casing`'s Part.color would be null
+   instead of the correctly resolved fixed white, and
+   `ski-runs-nordic-casing`'s would be null instead of a
+   `{mode: "scale"}` reference.
+2. `circle` is a supported `kind` (circle-color/circle-opacity/
+   circle-radius) — openskimap uses circle layers for ski_spots and the
+   low-zoom ski-area markers. GEODATA_PLUGIN_STANDARD.md's own kind
+   table documents this directly as of v2.0.0 (§5.3), unlike v1.1.0
+   where it required a local deviation.
 """
 
 DIFFICULTY_CASE_PROPERTY = "difficulty_convention"
@@ -174,110 +174,19 @@ def extract_categorized_items(layer, kind):
     return None
 
 
-def extract_layer_color(layer):
+def _extract_interpolatable_number(value):
     """
-    Extract color from a MapLibre style layer.
-
-    For fill layers, looks for 'fill-color' in paint properties.
-    For line layers, looks for 'line-color' in paint properties.
-    For symbol layers, tries 'text-color' or 'icon-color'.
-
-    Args:
-        layer (dict): A MapLibre layer object
-
-    Returns:
-        str: Hex color string (e.g., "#3b82f6") or None if not found or
-             not a plain string (e.g. a case/match/interpolate expression)
+    Shared rule for width/dasharray-adjacent numeric fields (width, radius,
+    opacity): a literal number is returned directly; an `interpolate`
+    expression over `["zoom"]` returns its highest-zoom stop value (the last
+    value in the stop list); any other form (missing, data-driven, etc.)
+    returns None.
     """
-    if "paint" not in layer:
-        return None
+    if isinstance(value, (int, float)):
+        return value
 
-    paint = layer.get("paint", {})
-    layer_type = layer.get("type")
-
-    # Try type-specific color properties
-    if layer_type == "fill":
-        color = paint.get("fill-color")
-    elif layer_type == "line":
-        color = paint.get("line-color")
-    elif layer_type == "circle":
-        color = paint.get("circle-color")
-    elif layer_type == "symbol":
-        color = paint.get("text-color") or paint.get("icon-color")
-    elif layer_type == "background":
-        color = paint.get("background-color")
-    else:
-        color = None
-
-    return color if isinstance(color, str) else None
-
-
-def extract_layer_opacity(layer):
-    """
-    Extract opacity from a MapLibre style layer.
-
-    For fill layers, looks for 'fill-opacity' in paint properties.
-    For line layers, looks for 'line-opacity' in paint properties.
-    For symbol layers, tries 'text-opacity' or 'icon-opacity'.
-    Defaults to 1 if not specified.
-
-    Args:
-        layer (dict): A MapLibre layer object
-
-    Returns:
-        float: Opacity value (0-1), defaults to 1
-    """
-    paint = layer.get("paint", {})
-    layer_type = layer.get("type")
-
-    # Try type-specific opacity properties
-    if layer_type == "fill":
-        opacity = paint.get("fill-opacity")
-        if opacity is not None:
-            return opacity
-    elif layer_type == "line":
-        opacity = paint.get("line-opacity")
-        if opacity is not None:
-            return opacity
-    elif layer_type == "circle":
-        opacity = paint.get("circle-opacity")
-        if opacity is not None:
-            return opacity
-    elif layer_type == "symbol":
-        opacity = paint.get("text-opacity") or paint.get("icon-opacity")
-        if opacity is not None:
-            return opacity
-
-    # Default to 1 if not specified
-    return 1
-
-
-def extract_layer_width(layer):
-    """
-    Extract line-width from a MapLibre line layer.
-
-    Literal numbers are returned directly. An `interpolate` expression over
-    zoom returns its highest-zoom stop value (the last value in the stop
-    list) — the width the layer renders at when fully zoomed in. Any other
-    expression form (e.g. data-driven) returns None, as does any non-line
-    layer.
-
-    Args:
-        layer (dict): A MapLibre layer object
-
-    Returns:
-        float | int | None
-    """
-    if layer.get("type") != "line":
-        return None
-
-    width = layer.get("paint", {}).get("line-width")
-
-    if isinstance(width, (int, float)):
-        return width
-
-    if isinstance(width, list) and width and width[0] == "interpolate":
-        stops_and_values = width[3:]
+    if isinstance(value, list) and value and value[0] == "interpolate":
+        stops_and_values = value[3:]
         if stops_and_values and len(stops_and_values) % 2 == 0:
             last_value = stops_and_values[-1]
             if isinstance(last_value, (int, float)):
@@ -286,24 +195,51 @@ def extract_layer_width(layer):
     return None
 
 
-def extract_layer_dasharray(layer):
+def extract_part_opacity(layer, kind):
+    """Kind-specific opacity (PART_FIELDS_BY_KIND), see
+    _extract_interpolatable_number. Defaults to 1 if unset/unresolvable or
+    if `kind` has no opacity field."""
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("opacity")
+    if prop is None:
+        return 1
+
+    result = _extract_interpolatable_number(layer.get("paint", {}).get(prop))
+    return result if result is not None else 1
+
+
+def extract_part_width(layer, kind):
+    """Kind-specific line-width (PART_FIELDS_BY_KIND), see
+    _extract_interpolatable_number. None if `kind` has no width field."""
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("width")
+    if prop is None:
+        return None
+    return _extract_interpolatable_number(layer.get("paint", {}).get(prop))
+
+
+def extract_part_radius(layer, kind):
+    """Kind-specific circle-radius (PART_FIELDS_BY_KIND), see
+    _extract_interpolatable_number. None if `kind` has no radius field
+    (only "circle" does)."""
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("radius")
+    if prop is None:
+        return None
+    return _extract_interpolatable_number(layer.get("paint", {}).get(prop))
+
+
+def extract_part_dasharray(layer, kind):
     """
-    Extract line-dasharray from a MapLibre line layer.
-
-    Only a literal 2-element numeric array counts, whether written as a raw
-    array (`[1, 3]`) or wrapped in a MapLibre "literal" expression
-    (`["literal", [1, 3]]` — the form openskimap's style actually uses for
-    the private/other lift-line variants). Anything else (missing field,
-    wrong length, non-numeric values) returns None.
-
-    Args:
-        layer (dict): A MapLibre layer object
-
-    Returns:
-        list[float | int] | None
+    Kind-specific line-dasharray (PART_FIELDS_BY_KIND). Only a literal
+    2-element numeric array counts, whether written as a raw array
+    (`[1, 3]`) or wrapped in a MapLibre "literal" expression
+    (`["literal", [1, 3]]` — the form openskimap's style actually uses).
+    None if `kind` has no dasharray field, the field is missing, or the
+    value doesn't match either form.
     """
-    dasharray = layer.get("paint", {}).get("line-dasharray")
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("dasharray")
+    if prop is None:
+        return None
 
+    dasharray = layer.get("paint", {}).get(prop)
     if not isinstance(dasharray, list):
         return None
 
@@ -318,117 +254,25 @@ def extract_layer_dasharray(layer):
     return None
 
 
-def extract_outline_metadata(group_layers):
+def extract_part_icon(layer, kind):
     """
-    Find a group's casing/outline layer and extract its color/width.
-
-    Scans group_layers for the first `type: "line"` layer whose `id` ends in
-    "-casing" or "-outline" (GEODATA_PLUGIN_STANDARD.md v1.1 §5.3 extraction
-    rule — id-suffix only, no z-order or other fallback). Its `line-color`
-    (via extract_layer_color — None if it's an expression, not a literal
-    string) and `line-width` (via extract_layer_width) become
-    outline_color/outline_width. No matching layer -> both None.
-
-    Args:
-        group_layers (list): List of MapLibre layer objects in one group
-
-    Returns:
-        dict: {"outline_color": str | None, "outline_width": float | int | None}
+    Kind-specific icon-image (PART_FIELDS_BY_KIND). Only returns a value
+    when `kind` has an icon field (only "icon" does) and the layout
+    property is a literal string (openskimap's lift-icon layer uses a
+    `match` expression there, so this returns None for it — correct per
+    spec, not a bug).
     """
-    for layer in group_layers:
-        layer_id = layer.get("id", "")
-        if layer.get("type") == "line" and (
-            layer_id.endswith("-casing") or layer_id.endswith("-outline")
-        ):
-            return {
-                "outline_color": extract_layer_color(layer),
-                "outline_width": extract_layer_width(layer),
-            }
-
-    return {"outline_color": None, "outline_width": None}
-
-
-def extract_layer_icon(layer):
-    """
-    Extract icon-image from a MapLibre symbol layer.
-
-    Only returns a value for `type: "symbol"` layers, and only when
-    `layout.icon-image` is a literal string (openskimap's lift-icon layer
-    uses a `match` expression there, so this returns None for it — correct
-    per spec, not a bug).
-
-    Args:
-        layer (dict): A MapLibre layer object
-
-    Returns:
-        str | None
-    """
-    if layer.get("type") != "symbol":
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("icon")
+    if prop is None:
         return None
 
-    icon = layer.get("layout", {}).get("icon-image")
+    icon = layer.get("layout", {}).get(prop)
     return icon if isinstance(icon, str) else None
 
 
-# NOTE: unlike generate_layer_list.py's _group_metadata, which excludes
-# -casing/-outline-suffixed layers from primary-layer selection (so a casing
-# layer never determines a group's color/type), extract_legend_items below
-# is deliberately NOT given that same filtered list — it scans ALL of a
-# group's layers (including casing/outline ones) for a categorized color
-# expression. Today this is harmless (no casing layer's color expression
-# currently wins the scan ahead of the "real" one), but it's a latent
-# inconsistency risk: if a future style change moves a group's only
-# categorized color expression onto a casing-only layer while a non-casing
-# layer has a different/no color, legend_items and the primary color/type
-# could show inconsistent information. Watch for this if style layer order
-# changes.
-def extract_legend_items(style_layers):
-    """
-    Extract legend items from style layers.
 
-    Scans fill-color (fill layers) and line-color (line layers) for
-    interpolate/match expressions, resolving a top-level "case" first (see
-    module docstring, deviation 3) if present. Numeric match/interpolate
-    values produce time-range-style labels ("X-Y min"); string match values
-    produce one item per matched value plus a trailing "Sonstige" item for
-    the fallback color, if any.
 
-    Args:
-        style_layers (list): List of MapLibre layer objects
 
-    Returns:
-        list: List of {label, color} dicts for categorized layers, or None for simple layers
-    """
-    if not style_layers:
-        return None
-
-    color_prop_by_type = {"fill": "fill-color", "line": "line-color", "circle": "circle-color"}
-
-    for layer in style_layers:
-        layer_type = layer.get("type")
-        color_prop = color_prop_by_type.get(layer_type)
-        if color_prop is None:
-            continue
-
-        paint = layer.get("paint", {})
-        color_expr = paint.get(color_prop)
-
-        if not isinstance(color_expr, list):
-            continue
-
-        if color_expr[0] == "case":
-            color_expr = _resolve_case_branch(
-                color_expr, DIFFICULTY_CASE_PROPERTY, DIFFICULTY_CASE_VALUE
-            )
-            if not isinstance(color_expr, list):
-                continue
-
-        if color_expr[0] == "interpolate":
-            return _parse_interpolate_expression(color_expr)
-        elif color_expr[0] == "match":
-            return _parse_match_expression(color_expr)
-
-    return None
 
 
 def _resolve_case_branch(expr, property_name, target_value):
@@ -598,58 +442,3 @@ def _build_categorical_match_items(values, colors, fallback_color):
     return legend_items
 
 
-def extract_layer_metadata(style_data, source_layer):
-    """
-    Extract comprehensive metadata for a source layer from a style.
-
-    Determines the primary layer type based on priority: fill > line > symbol.
-    Extracts color and opacity from the primary layer.
-
-    Args:
-        style_data (dict): A MapLibre style JSON object
-        source_layer (str): The source-layer name to extract metadata for
-
-    Returns:
-        dict: Metadata object with keys:
-            - type: "fill" | "line" | "symbol" (from primary layer)
-            - color: hex string or None
-            - opacity: number (0-1)
-            - legend_items: list or None
-        Returns None if no matching layers found for source_layer
-    """
-    layers = style_data.get("layers", [])
-
-    # Filter layers by source-layer
-    matching_layers = [
-        layer for layer in layers
-        if layer.get("source-layer") == source_layer
-    ]
-
-    if not matching_layers:
-        return None
-
-    # Determine primary layer type by priority: fill > line > symbol
-    primary_layer = None
-    layer_type_priority = {"fill": 4, "line": 3, "circle": 2, "symbol": 1}
-
-    for layer in matching_layers:
-        layer_type = layer.get("type")
-        if layer_type in layer_type_priority:
-            if primary_layer is None:
-                primary_layer = layer
-            else:
-                current_priority = layer_type_priority.get(layer_type, 0)
-                existing_priority = layer_type_priority.get(primary_layer.get("type"), 0)
-                if current_priority > existing_priority:
-                    primary_layer = layer
-
-    if primary_layer is None:
-        return None
-
-    # Extract metadata from primary layer
-    return {
-        "type": primary_layer.get("type"),
-        "color": extract_layer_color(primary_layer),
-        "opacity": extract_layer_opacity(primary_layer),
-        "legend_items": extract_legend_items(matching_layers),
-    }
