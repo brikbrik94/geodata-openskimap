@@ -5,6 +5,22 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 18:39
+
+### Removed
+- `styles/openskimap-style.json`: toten `difficulty == "freeride"`-Sonderfall aus
+  `ski-runs-nordic-fill`s und `ski-runs-skitour-fill`s `fill-color`-Expression entfernt.
+  Verifiziert gegen `work/`: `ski_runs_nordic_poly.jsonseq` hat 2 Features, `ski_runs_skitour_poly.jsonseq`
+  1 Feature (ggü. 2.767 bei `ski_runs_downhill_poly.jsonseq`, wo der Zweig bleibt) — Polygon-Fläche
+  ist bei Loipen/Skitouren praktisch nie vorhanden. Bei Loipen kommt Freeride laut den echten Daten
+  zusätzlich nie vor (bereits verifiziert, siehe `ski-difficulty-v1`-Scale-Historie), der Zweig war
+  dort ohnehin unerreichbar. Bei Skitouren bleibt Freeride weiterhin über die eigene
+  Linien-Legendenzeile (`GROUP_VARIANTS["ski-runs-skitour"]`, Achse `difficulty`, Label `Freeride`)
+  sinnvoll dargestellt — das ist jetzt die einzige Freeride-Darstellung für Skitouren, statt einer
+  zusätzlichen, für die kaum vorhandene Polygon-Fläche irrelevanten Sonderfarbe. Keine Änderungen an
+  `scripts/generate_layer_list.py` oder Tests nötig: die extrahierte `ski-difficulty-v1`-Skala hängt
+  nur an der dahinterliegenden `difficulty_convention`-Match-Verschachtelung, die unverändert bleibt.
+
 ## [Unreleased] - 2026-08-16 17:18
 
 ### Changed

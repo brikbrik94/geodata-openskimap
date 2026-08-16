@@ -177,15 +177,6 @@
             "==",
             [
               "get",
-              "difficulty"
-            ],
-            "freeride"
-          ],
-          "hsl(34, 100%, 50%)",
-          [
-            "==",
-            [
-              "get",
               "difficulty_convention"
             ],
             "europe"
@@ -632,15 +623,6 @@
       "paint": {
         "fill-color": [
           "case",
-          [
-            "==",
-            [
-              "get",
-              "difficulty"
-            ],
-            "freeride"
-          ],
-          "hsl(34, 100%, 50%)",
           [
             "==",
             [
