@@ -35,6 +35,16 @@ sichtbar ist. `line-offset` ist damit kein hypothetisches Feature mehr,
 sondern der naheliegende nächste Schritt, um diese echten Duplikate sauber
 parallel versetzt statt deckungsgleich übereinander darzustellen.
 
+Für die Priorisierung (gemessen gegen den echten `work/`-Output, siehe
+`docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`):
+Downhill∩Nordic betrifft nur 17 Features (~0,1 %, kaum spürbar), aber
+Downhill∩Skitour betrifft 180 von 1673 Skitour-Features (~10,8 %) — und
+`ski-runs-skitour-line` liegt im Style-Z-Order über allen Downhill-Layern,
+d. h. diese 180 echten Downhill-Pisten werden aktuell standardmäßig mit
+Skitour-Styling gezeichnet. Nutzer-Entscheidung (2026-08-16): bewusst so
+belassen, bis `line-offset` umgesetzt ist — kein akutes Sofort-Pflaster
+(z. B. Z-Order-Tausch) vorgesehen.
+
 Für eine spätere Umsetzung: `scripts/convert.sh` müsste die Feature-Zahl
 pro Kategorie in ein eigenes numerisches Property schreiben (z. B. per
 SQL-`CASE`/Fensterfunktion oder einem nachgelagerten Python-Skript vor der
