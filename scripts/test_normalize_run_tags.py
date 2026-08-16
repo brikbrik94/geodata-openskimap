@@ -11,6 +11,7 @@ from normalize_run_tags import (
     normalize_file,
     GROOMING_ALLOWLIST,
     DIFFICULTY_REMAP,
+    VALID_CATEGORIES,
 )
 
 
@@ -104,6 +105,24 @@ class NormalizeGroomingTests(unittest.TestCase):
 
     def test_allowlist_covers_downhill_nordic_skitour_not_other(self):
         self.assertEqual(set(GROOMING_ALLOWLIST.keys()), {"downhill", "nordic", "skitour"})
+
+    def test_other_split_categories_pass_grooming_through_unchanged(self):
+        # hike/sled/connection/snow_park/playground/ice_skate (2026-08-16
+        # "other" split) have no allowlist yet either - same "not
+        # investigated" treatment as the "other" residual bucket.
+        for category in ("hike", "sled", "connection", "snow_park", "playground", "ice_skate"):
+            props = {"grooming": "classic+skating"}
+            result = normalize_grooming(props, category)
+            self.assertEqual(result["grooming"], "classic+skating")
+
+    def test_valid_categories_covers_all_ten(self):
+        self.assertEqual(
+            VALID_CATEGORIES,
+            {
+                "downhill", "nordic", "skitour", "other",
+                "hike", "sled", "connection", "snow_park", "playground", "ice_skate",
+            },
+        )
 
 
 class NormalizeDifficultyTests(unittest.TestCase):

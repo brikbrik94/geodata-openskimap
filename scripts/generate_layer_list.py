@@ -67,22 +67,31 @@ GROUP_MAP = {
     "ski-runs-downhill-fill": "ski-runs-downhill",
     "ski-runs-downhill-casing": "ski-runs-downhill",
     "ski-runs-downhill-line": "ski-runs-downhill",
-    "ski-runs-downhill-gladed": "ski-runs-downhill",
-    "ski-runs-downhill-ungroomed": "ski-runs-downhill",
     "ski-runs-downhill-snowmaking": "ski-runs-downhill",
     "ski-runs-downhill-labels": "ski-runs-downhill",
     "ski-runs-nordic-fill": "ski-runs-nordic",
     "ski-runs-nordic-casing": "ski-runs-nordic",
     "ski-runs-nordic-line": "ski-runs-nordic",
-    "ski-runs-nordic-ungroomed": "ski-runs-nordic",
     "ski-runs-nordic-snowmaking": "ski-runs-nordic",
     "ski-runs-nordic-labels": "ski-runs-nordic",
     "ski-runs-skitour-fill": "ski-runs-skitour",
     "ski-runs-skitour-line": "ski-runs-skitour",
     "ski-runs-skitour-labels": "ski-runs-skitour",
-    "ski-runs-other-fill": "ski-runs-other",
-    "ski-runs-other-line": "ski-runs-other",
-    "ski-runs-other-labels": "ski-runs-other",
+    # Connection ist visuell mit den Pisten verschmolzen (identische
+    # Difficulty-Faerbung + weisse Casing) und wandert deshalb in dieselbe
+    # Legenden-Gruppe wie Downhill statt eine eigene zu bekommen - vom
+    # Nutzer nach visueller Pruefung so bestaetigt (2026-08-16 Follow-up).
+    "ski-runs-connection-casing": "ski-runs-downhill",
+    "ski-runs-connection-line": "ski-runs-downhill",
+    "ski-runs-hike-line": "ski-runs-hike",
+    "ski-runs-sled-fill": "ski-runs-sled",
+    "ski-runs-sled-line": "ski-runs-sled",
+    "ski-runs-snow_park-fill": "ski-runs-snow_park",
+    "ski-runs-snow_park-line": "ski-runs-snow_park",
+    "ski-runs-playground-fill": "ski-runs-playground",
+    "ski-runs-playground-line": "ski-runs-playground",
+    "ski-runs-ice_skate-fill": "ski-runs-ice_skate",
+    "ski-runs-ice_skate-line": "ski-runs-ice_skate",
     "ski-spots": "ski-spots",
     "ski-lifts-casing": "ski-lifts",
     "ski-lifts-line": "ski-lifts",
@@ -103,7 +112,11 @@ GROUP_NAMES = {
     "ski-runs-downhill": "Pisten",
     "ski-runs-nordic": "Loipen",
     "ski-runs-skitour": "Skitouren",
-    "ski-runs-other": "Sonstige Strecken",
+    "ski-runs-hike": "Winterwanderwege",
+    "ski-runs-sled": "Rodelbahnen",
+    "ski-runs-snow_park": "Snowparks",
+    "ski-runs-playground": "Übungswiesen",
+    "ski-runs-ice_skate": "Eislaufplätze",
     "ski-spots": "Ski-Spots",
     "ski-lifts": "Lifte",
 }
@@ -119,7 +132,6 @@ GROUP_LEGEND_SCALE = {
     "ski-runs-downhill": "ski-difficulty-v1",
     "ski-runs-nordic": "ski-difficulty-v1",
     "ski-runs-skitour": "ski-difficulty-v1",
-    "ski-runs-other": "ski-difficulty-v1",
     "ski-lifts": "ski-lift-status-v1",
     "ski-spots": "ski-spot-type-v1",
 }
@@ -144,36 +156,24 @@ LEGEND_SCALE_LABELS = {
 # conformant (each of its 4 variant-bearing style layers appears in exactly
 # one axis entry — see the design doc's paint-coupling investigation for how
 # it was split into orthogonal "status"/"access" axes without duplication).
-# ski-runs-downhill is a KNOWN, DELIBERATE DEVIATION from this rule:
-# ski-runs-downhill-gladed and ski-runs-downhill-ungroomed each appear in
-# TWO variants[] entries — their own single-condition entry AND the combined
-# "Waldabfahrt, nicht präpariert" entry of the grooming-terrain axis. A
-# conformant orthogonal-axis decomposition (splitting into a "terrain" axis
-# and a "grooming" axis, eliminating the combined entry) was investigated
-# and found tractable — see
-# docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md's
-# "Verworfene Alternative" section — but was deliberately deferred to avoid
-# a second breaking variants[] shape change for the website-v3 consumer so
-# soon after this migration. This is accepted, documented technical debt,
-# tracked in docs/TODO.md, not a standard-permitted pattern.
+#
+# ski-runs-downhill/ski-runs-nordic had a grooming-terrain/snowmaking
+# variants[] split here previously (v2.1.0 migration, 2026-08-14), built
+# around dedicated filtered style layers (-gladed, -ungroomed,
+# -nordic-ungroomed). The 2026-08-16 piste-restyling follow-up removed those
+# filtered layers entirely, consolidating grooming into a single
+# `line-dasharray` case-expression on -downhill-line/-nordic-line (mogul =
+# dotted, backcountry = dashed) — there is no longer a distinct filtered
+# style layer per grooming state to hang a variants[] entry off of, so both
+# groups were dropped from GROUP_VARIANTS (decided with the user
+# 2026-08-16): they fall back to plain flat `render` like any group with no
+# entry here, including their still-present-but-always-empty
+# -downhill-snowmaking/-nordic-snowmaking layers (see docs/TODO.md — the
+# GeoPackage's boolean columns never export `true`, so these layers never
+# match real data regardless of variants[] shape). This also resolves the
+# prior KNOWN DEVIATION from the "never in more than one variants[] entry"
+# rule that ski-runs-downhill's gladed/ungroomed combo previously required.
 GROUP_VARIANTS = {
-    "ski-runs-nordic": [
-        {"axis": "grooming", "label": "Gespurt", "style_layer_ids": ["ski-runs-nordic-line"]},
-        {"axis": "grooming", "label": "Ungespurt", "style_layer_ids": ["ski-runs-nordic-ungroomed"]},
-        {"axis": "snowmaking", "label": "Beschneit", "style_layer_ids": ["ski-runs-nordic-snowmaking"]},
-    ],
-    "ski-runs-downhill": [
-        {"axis": "grooming-terrain", "label": "Präpariert",
-         "style_layer_ids": ["ski-runs-downhill-line"]},
-        {"axis": "grooming-terrain", "label": "Waldabfahrt",
-         "style_layer_ids": ["ski-runs-downhill-gladed"]},
-        {"axis": "grooming-terrain", "label": "Nicht präpariert",
-         "style_layer_ids": ["ski-runs-downhill-ungroomed"]},
-        {"axis": "grooming-terrain", "label": "Waldabfahrt, nicht präpariert",
-         "style_layer_ids": ["ski-runs-downhill-gladed", "ski-runs-downhill-ungroomed"]},
-        {"axis": "snowmaking", "label": "Beschneit",
-         "style_layer_ids": ["ski-runs-downhill-snowmaking"]},
-    ],
     "ski-lifts": [
         {"axis": "status", "label": "In Betrieb",
          "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},

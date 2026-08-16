@@ -55,38 +55,51 @@ ogr2ogr -f GeoJSONSeq ski_areas_alpine_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$NORDIC_AREA_WHERE"
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$NORDIC_AREA_WHERE"
 
-# Pisten/Loipen: nach 'uses' in vier Kategorien aufgeteilt. Downhill/Nordic/
-# Skitour sind jetzt UNABHAENGIG/inklusiv wie bei den Ski-Gebieten oben -
-# ein Feature mit uses="nordic,downhill" landet in BEIDEN Layern (identische
+# Pisten/Loipen: nach 'uses' in Kategorien aufgeteilt. Downhill/Nordic/
+# Skitour sind UNABHAENGIG/inklusiv wie bei den Ski-Gebieten oben - ein
+# Feature mit uses="nordic,downhill" landet in BEIDEN Layern (identische
 # Geometrie, dupliziert). Loest damit das Problem, dass eine "nur Loipen"-
 # Ansicht sonst Mischnutzungs-Segmente komplett verliert. Ersetzt die
 # vorherige feste Prioritaet downhill > nordic > skitour > other (siehe
 # docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md, jetzt
 # abgeloest durch docs/superpowers/specs/
 # 2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md).
-# OTHER_RUN_WHERE bleibt exklusiv - repraesentiert weiterhin "keine der drei
-# spezifischen uses trifft zu", unveraendert durch die Duplizierung oben.
-# OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL wertet
-# "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
-# Features ganz ohne uses-Wert aus allen vier Kategorien herausfallen.
-# Downhill/Nordic/Skitour bekommen zusaetzlich eine grooming-Tag-
-# Normalisierung (normalize_run_tags.py, siehe unten) - Other nicht (siehe
-# design doc "Explizit zurueckgestellt"; Skitour kam am 2026-08-16 dazu,
-# nach manueller Pruefung aller betroffenen OSM-Ways gegen die Live-Daten).
-# ALLE vier Kategorien (auch Other) laufen zusaetzlich durch dieselbe
-# normalize_run_tags.py fuer die difficulty-Remappierung (expert->advanced,
-# extreme->freeride) - kategorie-unabhaengig, da difficulty ueberall
-# gleich bedeutet. Other bekommt dafuer jetzt ebenfalls den Skript-Aufruf,
-# obwohl sein grooming-Wert dabei unveraendert bleibt (kein Allowlist-
-# Eintrag fuer "other").
+#
+# "Other" wurde am 2026-08-16 (Follow-up) selbst in sechs eigene Kategorien
+# aufgeteilt (hike/sled/connection/snow_park/playground/ice_skate), nach
+# demselben unabhaengig/inklusiven Muster - alle 2608 bisherigen "Other"-
+# Features sind durch diese sechs `uses`-Werte vollstaendig abgedeckt
+# (verifiziert gegen die echten Daten). OTHER_RUN_WHERE bleibt als echtes
+# Auffangbecken bestehen (schliesst jetzt zusaetzlich alle sechs neuen Typen
+# aus) - aktuell 0 Features, aber Sicherheitsnetz fuer kuenftige/unbekannte
+# uses-Werte. OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL
+# wertet "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
+# Features ganz ohne uses-Wert herausfallen.
+#
+# Downhill/Nordic/Skitour bekommen eine grooming-Tag-Normalisierung
+# (normalize_run_tags.py, siehe unten) - alle anderen Kategorien (auch die
+# sechs neuen) noch nicht (siehe design doc "Explizit zurueckgestellt";
+# Skitour kam am 2026-08-16 dazu, nach manueller Pruefung aller betroffenen
+# OSM-Ways gegen die Live-Daten). ALLE Kategorien laufen trotzdem durch
+# dieselbe normalize_run_tags.py fuer die difficulty-Remappierung
+# (expert->advanced, extreme->freeride) - kategorie-unabhaengig, da
+# difficulty ueberall gleich bedeutet; ihr grooming-Wert bleibt dabei fuer
+# die Kategorien ohne Allowlist-Eintrag unveraendert.
 DOWNHILL_RUN_WHERE="uses LIKE '%downhill%' AND $COUNTRY_WHERE"
 NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND $COUNTRY_WHERE"
 SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND $COUNTRY_WHERE"
-OTHER_RUN_WHERE="(uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%')) AND $COUNTRY_WHERE"
+NOT_PISTE_WHERE="uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%'"
+HIKE_RUN_WHERE="uses LIKE '%hike%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+SLED_RUN_WHERE="uses LIKE '%sled%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+CONNECTION_RUN_WHERE="uses LIKE '%connection%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+SNOW_PARK_RUN_WHERE="uses LIKE '%snow_park%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+PLAYGROUND_RUN_WHERE="uses LIKE '%playground%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+ICE_SKATE_RUN_WHERE="uses LIKE '%ice_skate%' AND $NOT_PISTE_WHERE AND $COUNTRY_WHERE"
+OTHER_RUN_WHERE="(uses IS NULL OR ($NOT_PISTE_WHERE AND uses NOT LIKE '%hike%' AND uses NOT LIKE '%sled%' AND uses NOT LIKE '%connection%' AND uses NOT LIKE '%snow_park%' AND uses NOT LIKE '%playground%' AND uses NOT LIKE '%ice_skate%')) AND $COUNTRY_WHERE"
 
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
-log_info "Normalisiere grooming-Tags (downhill/nordic/skitour) und difficulty-Remap (alle vier Kategorien)..."
+log_info "Normalisiere grooming-Tags (downhill/nordic/skitour) und difficulty-Remap (alle Kategorien)..."
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_line.jsonseq downhill
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_poly.jsonseq downhill
 
@@ -100,10 +113,49 @@ ogr2ogr -f GeoJSONSeq ski_runs_skitour_poly.jsonseq "$INPUT_FILE" runs_multipoly
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_skitour_line.jsonseq skitour
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_skitour_poly.jsonseq skitour
 
+# "Other"-Subtypen: hike/connection sind zu 100% Linien, die anderen vier
+# haben einen echten Poly-Anteil (verifiziert gegen die echten Daten).
+ogr2ogr -f GeoJSONSeq ski_runs_hike_line.jsonseq "$INPUT_FILE" runs_linestring -where "$HIKE_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_hike_line.jsonseq hike
+
+ogr2ogr -f GeoJSONSeq ski_runs_sled_line.jsonseq "$INPUT_FILE" runs_linestring -where "$SLED_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_sled_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$SLED_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_sled_line.jsonseq sled
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_sled_poly.jsonseq sled
+
+ogr2ogr -f GeoJSONSeq ski_runs_connection_line.jsonseq "$INPUT_FILE" runs_linestring -where "$CONNECTION_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_connection_line.jsonseq connection
+
+ogr2ogr -f GeoJSONSeq ski_runs_snow_park_line.jsonseq "$INPUT_FILE" runs_linestring -where "$SNOW_PARK_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_snow_park_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$SNOW_PARK_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_snow_park_line.jsonseq snow_park
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_snow_park_poly.jsonseq snow_park
+
+ogr2ogr -f GeoJSONSeq ski_runs_playground_line.jsonseq "$INPUT_FILE" runs_linestring -where "$PLAYGROUND_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_playground_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$PLAYGROUND_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_playground_line.jsonseq playground
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_playground_poly.jsonseq playground
+
+ogr2ogr -f GeoJSONSeq ski_runs_ice_skate_line.jsonseq "$INPUT_FILE" runs_linestring -where "$ICE_SKATE_RUN_WHERE"
+ogr2ogr -f GeoJSONSeq ski_runs_ice_skate_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$ICE_SKATE_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_ice_skate_line.jsonseq ice_skate
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_ice_skate_poly.jsonseq ice_skate
+
+# Rest-Auffangbecken (siehe Kommentar oben) - aktuell 0 Features erwartet.
+# Wird NICHT mehr in die PMTiles/den Layer-List eingespeist (leerer Layer
+# waere fuer die Konsumenten sichtbar, aber sinnlos) - die Extraktion bleibt
+# trotzdem bestehen, rein als Sicherheitsnetz: wenn hier doch Features
+# auftauchen, signalisiert das einen neuen/unbekannten uses-Wert, den keine
+# der neun benannten Kategorien abdeckt.
 ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_other_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$OTHER_RUN_WHERE"
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_other_line.jsonseq other
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_other_poly.jsonseq other
+
+OTHER_COUNT=$(($(wc -l < ski_runs_other_line.jsonseq) + $(wc -l < ski_runs_other_poly.jsonseq)))
+if [ "$OTHER_COUNT" -gt 0 ]; then
+  log_warn "ski_runs_other: $OTHER_COUNT Feature(s) im Rest-Auffangbecken gefunden (erwartet: 0) - vermutlich ein neuer/unbekannter uses-Wert, der von keiner der neun benannten Kategorien abgedeckt wird. Nicht im PMTiles-Output enthalten (siehe Kommentar oben) - work/ski_runs_other_line.jsonseq / _poly.jsonseq pruefen."
+fi
 
 # Lifte: ein Layer, keine Kategorie-Aufteilung noetig
 ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring -where "$COUNTRY_WHERE"
@@ -133,8 +185,16 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
   -L "ski_runs_nordic_poly:ski_runs_nordic_poly.jsonseq" \
   -L "ski_runs_skitour_line:ski_runs_skitour_line.jsonseq" \
   -L "ski_runs_skitour_poly:ski_runs_skitour_poly.jsonseq" \
-  -L "ski_runs_other_line:ski_runs_other_line.jsonseq" \
-  -L "ski_runs_other_poly:ski_runs_other_poly.jsonseq" \
+  -L "ski_runs_hike_line:ski_runs_hike_line.jsonseq" \
+  -L "ski_runs_sled_line:ski_runs_sled_line.jsonseq" \
+  -L "ski_runs_sled_poly:ski_runs_sled_poly.jsonseq" \
+  -L "ski_runs_connection_line:ski_runs_connection_line.jsonseq" \
+  -L "ski_runs_snow_park_line:ski_runs_snow_park_line.jsonseq" \
+  -L "ski_runs_snow_park_poly:ski_runs_snow_park_poly.jsonseq" \
+  -L "ski_runs_playground_line:ski_runs_playground_line.jsonseq" \
+  -L "ski_runs_playground_poly:ski_runs_playground_poly.jsonseq" \
+  -L "ski_runs_ice_skate_line:ski_runs_ice_skate_line.jsonseq" \
+  -L "ski_runs_ice_skate_poly:ski_runs_ice_skate_poly.jsonseq" \
   -L "ski_lifts:ski_lifts.jsonseq" \
   -L "ski_spots:ski_spots.jsonseq"
 

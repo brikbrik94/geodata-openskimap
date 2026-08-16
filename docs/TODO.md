@@ -33,28 +33,6 @@ leer (alle Punkte erledigt, siehe `docs/TODO_ARCHIVE.md`) — die erste
 Version wird als Nächstes geschnitten (Versionskonstante festlegen,
 `CHANGELOG.md` mit diesem Stand als erstem Eintrag anlegen).
 
-## `ski-runs-downhill`'s `variants[]` ist nicht §5.3-konform (Part-Duplikation über Einträge)
-
-`GEODATA_PLUGIN_STANDARD.md` v2.1.0 §5.3 verlangt, dass ein Style-Layer
-entweder in `render[]` oder in genau einem `variants[]`-Eintrag landet, nie
-in beiden und nie in mehreren. `ski-runs-downhill-gladed` und
-`ski-runs-downhill-ungroomed` (`scripts/generate_layer_list.py`,
-`GROUP_VARIANTS["ski-runs-downhill"]`) verletzen das: beide erscheinen
-jeweils in ihrem eigenen Einzel-Eintrag der `grooming-terrain`-Achse UND im
-kombinierten Eintrag "Waldabfahrt, nicht präpariert" — also je zweimal statt
-einmal. Bewusst in Kauf genommen bei der v2.1.0-Migration (siehe
-`docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`,
-Entscheidung 3 und Abschnitt "Verworfene Alternative"), um keine zweite
-Breaking-Change-Formänderung für `website-v3` so kurz nach der `ski-lifts`-
-Retaxonomie zu erzwingen.
-
-Lösung (dort bereits als technisch machbar geprüft): orthogonale Zerlegung
-in eine `"terrain"`-Achse (`"Waldabfahrt"`, aus `-gladed`) und eine separate
-`"grooming"`-Achse (`"Präpariert"`/`"Nicht präpariert"`, aus
-`-line`/`-ungroomed`) statt der aktuellen 4-Kombi-Form — macht den
-kombinierten Eintrag überflüssig und jeden Style-Layer eindeutig einem
-Eintrag zuordenbar. Siehe Design-Doc oben für die volle Analyse.
-
 ## Alle `BOOLEAN`-Spalten in `openskidata.gpkg` sind immer `0`/`false`
 
 Verifiziert über `runs_linestring`, `runs_multipolygon`, `lifts_linestring`, `spots_point`:
@@ -71,6 +49,19 @@ Konkrete Konsequenz: die `ski-runs-downhill-gladed`-Variante und die `snowmaking
 nicht weil es keine Waldabfahrten/Beschneiung gibt, sondern weil das Datenfeld kaputt exportiert
 wird. Nicht selbst fixbar (Upstream-Problem bei OpenSkiMap) — bei Gelegenheit dort melden oder
 regelmäßig neu prüfen, ob ein zukünftiger Datenexport das Feld korrekt befüllt.
+
+## Übungswiesen (`ski-runs-playground`): Schraffur-Fläche + Icon
+
+Aktuell (2026-08-16 Follow-up, Pisten-Restyling) rendert `ski-runs-playground-fill` als
+flache Füllung in Novice-Grün (`hsl(125, 100%, 33%)`, an die Pisten-Schwierigkeitsfarbe
+angepasst — bestätigt nach visueller Prüfung). Zwei Verbesserungen bewusst zurückgestellt,
+da beide ein neues Sprite-Asset brauchen (aktuell existieren nur Lift-Icons in
+`assets/sprites/openskimap/sprite.json`, kein Pattern/Fläche-Icon):
+
+- **Schraffur statt Flächenfüllung**: `fill-pattern` statt `fill-color` auf
+  `ski-runs-playground-fill` — bräuchte ein neues Schraffur-Pattern-Bild im Sprite-Sheet.
+- **Icon**: zusätzliches Symbol (z. B. Anfänger-/Übungswiesen-Icon) auf den
+  `ski-runs-playground`-Flächen/Punkten — bräuchte ein passendes neues Icon im Sprite-Sheet.
 
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 

@@ -5,7 +5,42 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-16 12:58
+## [Unreleased] - 2026-08-16 15:05
+
+### Fixed
+- `ski-runs-downhill`/`ski-runs-nordic` in `scripts/generate_layer_list.py`: `GROUP_VARIANTS`-
+  Einträge (grooming-terrain/grooming + snowmaking-Achsen) komplett entfernt. Sie waren um
+  dedizierte gefilterte Style-Layer (`-downhill-gladed`, `-downhill-ungroomed`,
+  `-nordic-ungroomed`) herumgebaut, die das Pisten-Restyling vom selben Tag bereits ersatzlos
+  gestrichen hatte (Grooming läuft seitdem über eine `line-dasharray`-`case`-Expression auf
+  einem einzigen `-line`-Layer statt über separate gefilterte Layer) — die `variants[]`-
+  Einträge referenzierten dadurch nicht mehr existierende Style-Layer-IDs und produzierten
+  leere `render[]`-Listen (4 fehlschlagende Tests). Beide Gruppen fallen jetzt auf flaches
+  `render[]` zurück wie jede Gruppe ohne `GROUP_VARIANTS`-Eintrag — das behebt nebenbei auch
+  `ski-runs-downhill`'s bisherige bekannte, dokumentierte Abweichung von
+  `GEODATA_PLUGIN_STANDARD.md` §5.3 (Part-Duplikation über zwei `variants[]`-Einträge hinweg),
+  da es jetzt keine `variants[]` mehr gibt, in die dupliziert werden könnte. Die entsprechende
+  TODO.md-Notiz ist damit hinfällig und wurde entfernt. `scripts/test_generate_layer_list.py`
+  entsprechend angepasst (117/117 Tests grün). Breaking Change für `website-v3`: beide Gruppen
+  liefern jetzt `variants: null` statt Achsen-Varianten — vom Nutzer nach Rückfrage (Optionen
+  "variants entfernen" vs. "nur snowmaking behalten") explizit so entschieden.
+
+### Removed
+- `ski-runs-other`-Gruppe komplett aus Style, Layer-Liste und Validierung entfernt: sie hatte
+  0 Features (die "Other"-Kategorie wurde am selben Tag bereits vollständig in sechs eigene
+  Kategorien aufgeteilt, siehe Eintrag `2026-08-16 06:27`ff. — ein leerer Layer wäre für
+  Konsumenten sichtbar, aber sinnlos gewesen). Entfernt: `ski-runs-other-fill/-line/-labels`
+  aus `styles/openskimap-style.json`, die zugehörigen `-L`-Einträge aus dem
+  `tippecanoe`-Aufruf in `scripts/convert.sh`, sowie die `GROUP_MAP`/`GROUP_NAMES`/
+  `GROUP_LEGEND_SCALE`-Einträge und `KNOWN_SOURCE_LAYERS`-Einträge in
+  `scripts/generate_layer_list.py`/`scripts/validate_style.py`.
+- Die `ogr2ogr`-Extraktion von `ski_runs_other_line/_poly.jsonseq` (`OTHER_RUN_WHERE`, echtes
+  Rest-Auffangbecken für unbekannte `uses`-Werte) bleibt bewusst bestehen — nur nicht mehr im
+  `tippecanoe`-Build. Neu: `scripts/convert.sh` prüft nach der Extraktion die Zeilenzahl beider
+  Dateien und gibt bei > 0 Features eine `log_warn` aus, damit ein künftiger/unbekannter
+  `uses`-Wert nicht stillschweigend im PMTiles-Output fehlt.
+
+
 
 ### Added
 - `scripts/normalize_run_tags.py`: neue, kategorie-unabhängige `difficulty`-Remappierung
