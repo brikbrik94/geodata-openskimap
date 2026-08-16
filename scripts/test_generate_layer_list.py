@@ -6,7 +6,9 @@ import unittest.mock
 
 sys.path.insert(0, os.path.dirname(__file__))
 import generate_layer_list
-from generate_layer_list import _build_render, _build_legend_sections, build_layer_list, _build_render_and_variants
+from generate_layer_list import (
+    _build_render, _build_legend_row, _build_legend, _build_legend_scales, build_layer_list,
+)
 
 STYLE_PATH = os.path.join(os.path.dirname(__file__), "..", "styles", "openskimap-style.json")
 
@@ -84,9 +86,8 @@ class BuildRenderTests(unittest.TestCase):
         # parser can disagree: a malformed interpolate expression (here
         # missing its stop/color pairs, len(expr) < 5) still classifies as
         # "categorized" but extract_categorized_items returns None. Must not
-        # write items: None into scale_items (schema-invalid legend_sections
-        # per GEODATA_PLUGIN_STANDARD.md §5.6) and must not poison later
-        # drift-checks against that scale_id.
+        # write items: None into scale_items (schema-invalid legend_scales)
+        # and must not poison later drift-checks against that scale_id.
         group_layers = [
             {
                 "id": "malformed-fill",
@@ -142,63 +143,115 @@ class BuildRenderTests(unittest.TestCase):
         self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "#2c3e50"})
 
 
-class BuildRenderAndVariantsTests(unittest.TestCase):
+class BuildLegendRowTests(unittest.TestCase):
     def setUp(self):
-        self._original_variants = generate_layer_list.GROUP_VARIANTS
+        self._original_map = generate_layer_list.GROUP_MAP
+        self._original_scale_map = generate_layer_list.GROUP_LEGEND_SCALE
+        generate_layer_list.GROUP_MAP = {"layer-a": "group-a", "layer-b": "group-a", "layer-c": "group-b"}
+        generate_layer_list.GROUP_LEGEND_SCALE = {"group-a": "test-scale"}
 
     def tearDown(self):
-        generate_layer_list.GROUP_VARIANTS = self._original_variants
+        generate_layer_list.GROUP_MAP = self._original_map
+        generate_layer_list.GROUP_LEGEND_SCALE = self._original_scale_map
 
-    def test_group_without_variants_config_returns_none_and_full_render(self):
-        generate_layer_list.GROUP_VARIANTS = {}
-        group_layers = [
-            {"id": "a-fill", "type": "fill", "paint": {"fill-color": "#111", "fill-opacity": 1}},
-        ]
-        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
-        self.assertIsNone(variants)
-        self.assertEqual(len(render), 1)
-
-    def test_variant_member_layers_split_from_shared_render(self):
-        generate_layer_list.GROUP_VARIANTS = {
-            "group-a": [
-                {"axis": "test-axis", "label": "Variant 1", "style_layer_ids": ["v1"]},
-                {"axis": "test-axis", "label": "Variant 2", "style_layer_ids": ["v2"]},
-            ]
+    def test_hand_authored_render_used_as_is(self):
+        row_def = {
+            "label": "Custom",
+            "style_layer_ids": ["layer-a"],
+            "render": [{
+                "kind": "line", "color": {"mode": "fixed", "value": "#fff"}, "stroke_color": None,
+                "opacity": 1, "width": 1.0, "dasharray": None, "radius": None, "stroke_width": None,
+                "icon": None,
+            }],
         }
-        group_layers = [
-            {"id": "shared", "type": "fill", "paint": {"fill-color": "#111"}},
-            {"id": "v1", "type": "line", "paint": {"line-color": "#222"}},
-            {"id": "v2", "type": "line", "paint": {"line-color": "#333"}},
-        ]
-        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
-        self.assertEqual(len(render), 1)
-        self.assertEqual(render[0]["color"], {"mode": "fixed", "value": "#111"})
-        self.assertEqual(len(variants), 2)
-        self.assertEqual(variants[0]["axis"], "test-axis")
-        self.assertEqual(variants[0]["label"], "Variant 1")
-        self.assertEqual(variants[0]["render"][0]["color"], {"mode": "fixed", "value": "#222"})
-        self.assertEqual(variants[1]["axis"], "test-axis")
-        self.assertEqual(variants[1]["label"], "Variant 2")
-        self.assertEqual(variants[1]["render"][0]["color"], {"mode": "fixed", "value": "#333"})
+        row = _build_legend_row(row_def, layers_by_id={}, scale_items={})
+        self.assertEqual(row["label"], "Custom")
+        self.assertEqual(row["render"], row_def["render"])
+        self.assertEqual(row["style_layer_ids"], ["layer-a"])
 
-    def test_layer_can_belong_to_multiple_variants(self):
-        generate_layer_list.GROUP_VARIANTS = {
-            "group-a": [
-                {"axis": "test-axis", "label": "Variant 1", "style_layer_ids": ["shared-member"]},
-                {"axis": "test-axis", "label": "Variant 2", "style_layer_ids": ["shared-member", "v2"]},
-            ]
+    def test_derived_render_from_single_group(self):
+        layers_by_id = {
+            "layer-a": {"id": "layer-a", "type": "fill", "paint": {"fill-color": "#123456"}},
         }
-        group_layers = [
-            {"id": "shared-member", "type": "line", "paint": {"line-color": "#111"}},
-            {"id": "v2", "type": "line", "paint": {"line-color": "#222"}},
-        ]
-        render, variants = generate_layer_list._build_render_and_variants(group_layers, "group-a", {})
-        self.assertEqual(render, [])
-        self.assertEqual(len(variants[0]["render"]), 1)
-        self.assertEqual(len(variants[1]["render"]), 2)
+        row_def = {"label": "Derived", "style_layer_ids": ["layer-a"]}
+        row = _build_legend_row(row_def, layers_by_id, scale_items={})
+        self.assertEqual(row["render"], [{
+            "kind": "fill", "color": {"mode": "fixed", "value": "#123456"}, "stroke_color": None,
+            "opacity": 1, "width": None, "dasharray": None, "radius": None, "stroke_width": None,
+            "icon": None,
+        }])
+
+    def test_derived_render_resolves_categorized_color_via_owning_group(self):
+        layers_by_id = {
+            "layer-a": {"id": "layer-a", "type": "fill",
+                        "paint": {"fill-color": ["match", ["get", "x"], "a", "#111", "#222"]}},
+        }
+        row_def = {"label": "Derived", "style_layer_ids": ["layer-a"]}
+        scale_items = {}
+        row = _build_legend_row(row_def, layers_by_id, scale_items)
+        self.assertEqual(row["render"][0]["color"], {"mode": "scale", "scale_id": "test-scale"})
+        self.assertIn("test-scale", scale_items)
+
+    def test_multi_group_style_layer_ids_without_render_raises(self):
+        layers_by_id = {
+            "layer-a": {"id": "layer-a", "type": "line", "paint": {"line-color": "#111"}},
+            "layer-c": {"id": "layer-c", "type": "line", "paint": {"line-color": "#222"}},
+        }
+        row_def = {"label": "Bad", "style_layer_ids": ["layer-a", "layer-c"]}
+        with self.assertRaises(AssertionError):
+            _build_legend_row(row_def, layers_by_id, scale_items={})
 
 
-class BuildLegendSectionsTests(unittest.TestCase):
+class BuildLegendTests(unittest.TestCase):
+    def setUp(self):
+        self._original_headings = generate_layer_list.LEGEND_HEADINGS
+        self._original_map = generate_layer_list.GROUP_MAP
+
+    def tearDown(self):
+        generate_layer_list.LEGEND_HEADINGS = self._original_headings
+        generate_layer_list.GROUP_MAP = self._original_map
+
+    def test_one_entry_per_heading_in_order(self):
+        generate_layer_list.GROUP_MAP = {"layer-a": "group-a"}
+        generate_layer_list.LEGEND_HEADINGS = {
+            "Heading One": [{"label": "Row 1", "style_layer_ids": ["layer-a"],
+                              "render": [{"kind": "line", "color": None, "stroke_color": None,
+                                          "opacity": 1, "width": None, "dasharray": None,
+                                          "radius": None, "stroke_width": None, "icon": None}]}],
+            "Heading Two": [{"label": "Row 2", "style_layer_ids": ["layer-a"],
+                              "render": [{"kind": "line", "color": None, "stroke_color": None,
+                                          "opacity": 1, "width": None, "dasharray": None,
+                                          "radius": None, "stroke_width": None, "icon": None}]}],
+        }
+        legend = _build_legend(layers_by_id={}, scale_items={})
+        self.assertEqual([entry["heading"] for entry in legend], ["Heading One", "Heading Two"])
+        self.assertEqual(legend[0]["rows"][0]["label"], "Row 1")
+        self.assertEqual(legend[1]["rows"][0]["label"], "Row 2")
+
+    def test_empty_headings_returns_none(self):
+        generate_layer_list.LEGEND_HEADINGS = {}
+        self.assertIsNone(_build_legend(layers_by_id={}, scale_items={}))
+
+    def test_heading_rows_may_span_multiple_groups(self):
+        generate_layer_list.GROUP_MAP = {"layer-a": "group-a", "layer-b": "group-b"}
+        generate_layer_list.LEGEND_HEADINGS = {
+            "Combined": [
+                {"label": "From group-a", "style_layer_ids": ["layer-a"],
+                 "render": [{"kind": "line", "color": None, "stroke_color": None, "opacity": 1,
+                             "width": None, "dasharray": None, "radius": None, "stroke_width": None,
+                             "icon": None}]},
+                {"label": "From group-b", "style_layer_ids": ["layer-b"],
+                 "render": [{"kind": "line", "color": None, "stroke_color": None, "opacity": 1,
+                             "width": None, "dasharray": None, "radius": None, "stroke_width": None,
+                             "icon": None}]},
+            ],
+        }
+        legend = _build_legend(layers_by_id={}, scale_items={})
+        self.assertEqual(len(legend), 1)
+        self.assertEqual([row["label"] for row in legend[0]["rows"]], ["From group-a", "From group-b"])
+
+
+class BuildLegendScalesTests(unittest.TestCase):
     def setUp(self):
         self._original_labels = generate_layer_list.LEGEND_SCALE_LABELS
         generate_layer_list.LEGEND_SCALE_LABELS = {"test-scale": "Test"}
@@ -206,15 +259,15 @@ class BuildLegendSectionsTests(unittest.TestCase):
     def tearDown(self):
         generate_layer_list.LEGEND_SCALE_LABELS = self._original_labels
 
-    def test_builds_one_section_per_scale_id(self):
+    def test_builds_one_entry_per_scale_id(self):
         scale_items = {"test-scale": [{"label": "A", "color": "#111"}]}
-        sections = _build_legend_sections(scale_items)
+        scales = _build_legend_scales(scale_items)
         self.assertEqual(
-            sections, [{"id": "test-scale", "label": "Test", "items": [{"label": "A", "color": "#111"}]}]
+            scales, [{"id": "test-scale", "label": "Test", "items": [{"label": "A", "color": "#111"}]}]
         )
 
     def test_empty_map_returns_none(self):
-        self.assertIsNone(_build_legend_sections({}))
+        self.assertIsNone(_build_legend_scales({}))
 
 
 class BuildLayerListRealStyleTests(unittest.TestCase):
@@ -224,9 +277,10 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             style_data = json.load(f)
         cls.result = build_layer_list(style_data, "openskimap", "OpenSkiMap", "openskimap.pmtiles")
         cls.groups_by_key = {g["template"]: g for g in cls.result["styles"][0]["groups"]}
+        cls.legend_by_heading = {entry["heading"]: entry for entry in cls.result["legend"]}
 
-    def test_schema_version_is_2_1(self):
-        self.assertEqual(self.result["version"], "2.1")
+    def test_schema_version_is_3_0(self):
+        self.assertEqual(self.result["version"], "3.0")
 
     def test_group_names_are_german(self):
         self.assertEqual(self.groups_by_key["ski-runs-downhill"]["name"], "Pisten")
@@ -237,277 +291,145 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(self.groups_by_key["ski-spots"]["name"], "Ski-Spots")
         self.assertEqual(self.groups_by_key["ski-lifts"]["name"], "Lifte")
 
-    def test_ski_lifts_render_parts(self):
-        lifts = self.groups_by_key["ski-lifts"]
-        # With variants, casing/status/access layers are in variants; text
-        # and all icon layers (including the mixed_lift pair, deliberately
-        # NOT a variant — see comment above GROUP_VARIANTS) stay in the flat
-        # shared render.
-        kinds = [p["kind"] for p in lifts["render"]]
-        self.assertEqual(kinds, ["text", "icon", "icon", "icon"])
+    def test_groups_have_no_render_or_variants_fields(self):
+        # Core of the v3.0 split: groups[] is pure toggle/rendering
+        # metadata now, no Part-level or legend content at all.
+        for group in self.groups_by_key.values():
+            self.assertNotIn("render", group)
+            self.assertNotIn("variants", group)
+            self.assertIn("style_layers", group)
 
-        generic_icon_part, mixed_gondola_part, mixed_chair_part = lifts["render"][1:]
-        self.assertIsNone(generic_icon_part["color"])
-        self.assertIsNone(generic_icon_part["icon"])  # icon-image is a match expression, not literal
-        self.assertIsNone(mixed_gondola_part["color"])
-        self.assertEqual(mixed_gondola_part["icon"], "ski-gondola")  # icon-image is a literal string
-        self.assertIsNone(mixed_chair_part["color"])
-        self.assertIsNone(mixed_chair_part["icon"])  # icon-image is a case expression, not literal
-
-    def test_ski_runs_downhill_casing_is_fixed_not_scale(self):
-        # -downhill-line/-connection-line are variant-only now (grooming
-        # rows — see comment above GROUP_VARIANTS), so the flat render[]
-        # only has casing/fill/snowmaking/labels left; the difficulty scale
-        # shows up in the variants' render instead (checked below).
-        downhill = self.groups_by_key["ski-runs-downhill"]
-        self.assertIsNotNone(downhill["variants"])
-        # -downhill-casing AND -connection-casing (merged into this group,
-        # see GROUP_MAP comment) both produce fixed-white outline Parts.
-        outline_parts = [p for p in downhill["render"] if p["kind"] == "outline"]
-        self.assertEqual(len(outline_parts), 2)
-        for part in outline_parts:
-            self.assertEqual(part["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
-        # Flat render[] no longer has any scale-colored line Part - that
-        # moved into the "grooming" variants.
-        self.assertFalse(any(
-            p["kind"] == "line" and p["color"] == {"mode": "scale", "scale_id": "ski-difficulty-v1"}
-            for p in downhill["render"]
-        ))
-
-    def test_ski_runs_nordic_casing_carries_difficulty_scale(self):
-        # Asymmetric vs. downhill: nordic's casing (not its line) is the
-        # difficulty-colored part — design doc 2026-08-14, Untersuchung Punkt 1.
-        # -nordic-line is variant-only now (grooming rows — see comment
-        # above GROUP_VARIANTS) and -nordic-snowmaking was removed from the
-        # style entirely (2026-08-16 third follow-up — never matched real
-        # data, see docs/TODO.md), so only casing/fill/labels are left in
-        # flat render[].
-        nordic = self.groups_by_key["ski-runs-nordic"]
-        self.assertIsNotNone(nordic["variants"])
-        outline_parts = [p for p in nordic["render"] if p["kind"] == "outline"]
-        self.assertEqual(len(outline_parts), 1)
-        self.assertEqual(
-            outline_parts[0]["color"],
-            {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+    def test_downhill_and_skitour_stay_independently_toggleable_groups(self):
+        # The whole point of the split: Pisten and Skitouren remain two
+        # separate groups[] entries (independently toggleable on the map)
+        # even though their legend rows are clustered under one heading.
+        self.assertIn("ski-runs-downhill", self.groups_by_key)
+        self.assertIn("ski-runs-skitour", self.groups_by_key)
+        self.assertNotEqual(
+            self.groups_by_key["ski-runs-downhill"]["style_layers"],
+            self.groups_by_key["ski-runs-skitour"]["style_layers"],
         )
-        self.assertFalse(any(p["kind"] == "line" for p in nordic["render"]))
 
-    def test_ski_spots_has_spot_type_variant_rows(self):
-        spots = self.groups_by_key["ski-spots"]
-        self.assertEqual(spots["render"], [])
+    def test_legend_has_four_headings(self):
+        self.assertEqual(list(self.legend_by_heading), ["Pisten", "Loipen", "Lifte", "Ski-Spots"])
+
+    def test_pisten_heading_rows(self):
+        rows = self.legend_by_heading["Pisten"]["rows"]
         self.assertEqual(
-            [(v["axis"], v["label"]) for v in spots["variants"]],
-            [
-                ("spot_type", "Lift Station"),
-                ("spot_type", "Halfpipe"),
-                ("spot_type", "Crossing"),
-                ("spot_type", "Avalanche Transceiver Training"),
-                ("spot_type", "Avalanche Transceiver Checkpoint"),
-                ("spot_type", "Sonstige"),
-            ],
+            [row["label"] for row in rows],
+            ["Präpariert", "Buckelpiste", "Skiroute", "Skitour", "Freeride"],
         )
-        expected_colors = ["#5a6b8c", "#8e44ad", "#e67e22", "#c0392b", "#c0392b", "#7f8c8d"]
-        for variant, color in zip(spots["variants"], expected_colors):
-            part = variant["render"][0]
-            self.assertEqual(part["kind"], "circle")
-            self.assertEqual(part["color"], {"mode": "fixed", "value": color})
-            self.assertEqual(part["radius"], 4)
-            self.assertEqual(part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
-            self.assertEqual(part["stroke_width"], 1)
 
-    def test_ski_spots_variant_colors_match_style_match_expression(self):
-        # Regression guard: the hand-authored colors above must not silently
-        # drift from the real circle-color match in styles/openskimap-style.json.
-        with open(STYLE_PATH, encoding="utf-8") as f:
-            style = json.load(f)
-        by_id = {layer["id"]: layer for layer in style["layers"]}
-        match_expr = by_id["ski-spots"]["paint"]["circle-color"]
-        self.assertEqual(match_expr[0], "match")
-        self.assertEqual(match_expr[1], ["get", "spot_type"])
-        values_colors_and_fallback = match_expr[2:]
-        fallback_color = values_colors_and_fallback[-1]
-        pairs = dict(zip(values_colors_and_fallback[:-1:2], values_colors_and_fallback[1::2]))
+        praepariert, buckelpiste, skiroute, skitour, freeride = rows
 
-        spots = self.groups_by_key["ski-spots"]
-        label_to_value = {
-            "Lift Station": "lift_station",
-            "Halfpipe": "halfpipe",
-            "Crossing": "crossing",
-            "Avalanche Transceiver Training": "avalanche_transceiver_training",
-            "Avalanche Transceiver Checkpoint": "avalanche_transceiver_checkpoint",
+        scale_color = {"mode": "scale", "scale_id": "ski-difficulty-v1"}
+        for row in (praepariert, buckelpiste, skiroute):
+            self.assertEqual(row["render"], [{
+                "kind": "line", "color": scale_color, "stroke_color": None, "opacity": 1,
+                "width": 3.0, "dasharray": row["render"][0]["dasharray"], "radius": None,
+                "stroke_width": None, "icon": None,
+            }])
+        self.assertIsNone(praepariert["render"][0]["dasharray"])
+        self.assertEqual(buckelpiste["render"][0]["dasharray"], [1, 3])
+        self.assertEqual(skiroute["render"][0]["dasharray"], [3, 6])
+
+        # "Skitour" is derived (no hand-authored render) from
+        # ski-runs-skitour-line, still colored by the same shared scale.
+        self.assertEqual(skitour["style_layer_ids"], ["ski-runs-skitour-line"])
+        self.assertEqual(skitour["render"][0]["color"], scale_color)
+        self.assertEqual(skitour["render"][0]["dasharray"], [3, 6])
+
+        # "Freeride" spans two different groups[] entries' style layers -
+        # the concrete case this whole split was built for.
+        self.assertEqual(
+            set(freeride["style_layer_ids"]),
+            {"ski-runs-downhill-line", "ski-runs-connection-line", "ski-runs-skitour-line"},
+        )
+        self.assertEqual(freeride["render"], [{
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+            "radius": None, "stroke_width": None, "icon": None,
+        }])
+
+    def test_loipen_heading_rows_carry_difficulty_scale(self):
+        rows = self.legend_by_heading["Loipen"]["rows"]
+        self.assertEqual([row["label"] for row in rows], ["Präpariert", "Unpräpariert"])
+
+        outline_part = {
+            "kind": "outline", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+            "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
+            "radius": None, "stroke_width": None, "icon": None,
         }
-        for variant in spots["variants"]:
-            color = variant["render"][0]["color"]["value"]
-            if variant["label"] == "Sonstige":
-                self.assertEqual(color, fallback_color)
-            else:
-                self.assertEqual(color, pairs[label_to_value[variant["label"]]])
+        praepariert, unpraepariert = rows
+        self.assertEqual(praepariert["render"][0], outline_part)
+        self.assertEqual(praepariert["render"][1]["dasharray"], None)
+        self.assertEqual(unpraepariert["render"][0], outline_part)
+        self.assertEqual(unpraepariert["render"][1]["dasharray"], [2, 4])
 
-    def test_ski_areas_alpine_circle_has_no_scale(self):
-        alpine = self.groups_by_key["ski-areas-alpine"]
-        circle_part = next(p for p in alpine["render"] if p["kind"] == "circle")
-        self.assertEqual(circle_part["color"], {"mode": "fixed", "value": "#3085fe"})
-        self.assertEqual(circle_part["radius"], 6)
-        self.assertEqual(circle_part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
-        self.assertEqual(circle_part["stroke_width"], 1)
-
-    def test_legend_sections_has_one_scale(self):
-        sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1"})
-        self.assertEqual(sections_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
-        # Expert/Extreme dead branches removed (data never has them since the
-        # difficulty remap - normalize_run_tags.py); Freeride removed from
-        # the shared scale too (2026-08-16 fourth follow-up) - it's now its
-        # own fixed-color "difficulty" axis row in ski-runs-downhill/
-        # ski-runs-skitour instead, see comment above GROUP_VARIANTS.
-        # ski-lift-status-v1 and ski-spot-type-v1 removed entirely (2026-08-16
-        # lift-status-icon-cleanup follow-up) - neither scale had more than
-        # one consumer, see comment above GROUP_LEGEND_SCALE.
+    def test_lifte_heading_rows(self):
+        rows = self.legend_by_heading["Lifte"]["rows"]
         self.assertEqual(
-            [i["label"] for i in sections_by_id["ski-difficulty-v1"]["items"]],
+            [row["label"] for row in rows],
+            ["In Betrieb", "Geplant / Im Bau", "Außer Betrieb", "Privat"],
+        )
+        in_betrieb = rows[0]
+        self.assertEqual(len(in_betrieb["render"]), 2)
+        self.assertEqual(in_betrieb["render"][0]["kind"], "outline")
+        self.assertEqual(in_betrieb["render"][0]["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
+        self.assertEqual(in_betrieb["render"][1]["color"], {"mode": "fixed", "value": "hsl(0, 82%, 42%)"})
+
+    def test_ski_spots_heading_rows(self):
+        rows = self.legend_by_heading["Ski-Spots"]["rows"]
+        expected_colors = ["#5a6b8c", "#8e44ad", "#e67e22", "#c0392b", "#c0392b", "#7f8c8d"]
+        self.assertEqual(
+            [row["label"] for row in rows],
+            ["Lift Station", "Halfpipe", "Crossing", "Avalanche Transceiver Training",
+             "Avalanche Transceiver Checkpoint", "Sonstige"],
+        )
+        for row, color in zip(rows, expected_colors):
+            self.assertEqual(row["render"][0]["color"], {"mode": "fixed", "value": color})
+
+    def test_legend_scales_has_exactly_one_scale(self):
+        scales_by_id = {s["id"]: s for s in self.result["legend_scales"]}
+        self.assertEqual(set(scales_by_id), {"ski-difficulty-v1"})
+        self.assertEqual(scales_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
+        self.assertEqual(
+            [i["label"] for i in scales_by_id["ski-difficulty-v1"]["items"]],
             ["Novice", "Easy", "Intermediate", "Advanced", "Sonstige"],
         )
 
-    def test_ski_runs_nordic_has_grooming_variant_rows(self):
-        # 2026-08-16 restyling follow-up deleted ski-runs-nordic-ungroomed
-        # (grooming is now a line-dasharray case-expression on the single
-        # -nordic-line layer) - the same-day second follow-up reinstated a
-        # "grooming" axis for it as hand-authored variant rows (see comment
-        # above GROUP_VARIANTS) so the legend still shows one row per
-        # grooming state. -nordic-snowmaking was removed from the style
-        # entirely in a third follow-up the same day (never matched real
-        # data - boolean export bug, docs/TODO.md), so no "line" kind Part
-        # remains in flat render[] at all.
-        nordic = self.groups_by_key["ski-runs-nordic"]
-        self.assertEqual(
-            [(v["axis"], v["label"]) for v in nordic["variants"]],
-            [("grooming", "Loipe"), ("grooming", "Loipe (Backcountry)")],
-        )
-        loipe_part = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        loipe_backcountry_part = dict(loipe_part, dasharray=[2, 4])
-        self.assertEqual(nordic["variants"][0]["render"], [loipe_part])
-        self.assertEqual(nordic["variants"][1]["render"], [loipe_backcountry_part])
-        shared_kinds = [p["kind"] for p in nordic["render"]]
-        self.assertEqual(shared_kinds, ["fill", "outline", "text"])
-
-    def test_ski_runs_downhill_has_grooming_variant_rows(self):
-        # Same 2026-08-16 restyling follow-up removed -downhill-gladed and
-        # -downhill-ungroomed (grooming is now a line-dasharray
-        # case-expression on the single -downhill-line/-connection-line
-        # layers) - the same-day second follow-up reinstated a "grooming"
-        # axis as hand-authored variant rows (see comment above
-        # GROUP_VARIANTS): one combined row per grooming state covering
-        # both -downhill-line and -connection-line, since they render
-        # identically and are already merged into this legend group.
-        # -downhill-snowmaking was removed from the style entirely in a
-        # third follow-up the same day (never matched real data - boolean
-        # export bug, docs/TODO.md), so no "line" kind Part remains in flat
-        # render[] at all. A fourth follow-up added the "Freeride" row
-        # (its own fixed-orange dashed row, "difficulty" axis, not
-        # "grooming" - see comment above GROUP_VARIANTS).
-        downhill = self.groups_by_key["ski-runs-downhill"]
-        self.assertEqual(
-            [(v["axis"], v["label"]) for v in downhill["variants"]],
-            [
-                ("grooming", "Piste"), ("grooming", "Piste (Backcountry)"), ("grooming", "Buckelpiste"),
-                ("difficulty", "Freeride"),
-            ],
-        )
-        piste_part = {
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
-            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        backcountry_part = dict(piste_part, dasharray=[3, 6])
-        mogul_part = dict(piste_part, dasharray=[1, 3])
-        freeride_part = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
-            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        self.assertEqual(downhill["variants"][0]["render"], [piste_part])
-        self.assertEqual(downhill["variants"][1]["render"], [backcountry_part])
-        self.assertEqual(downhill["variants"][2]["render"], [mogul_part])
-        self.assertEqual(downhill["variants"][3]["render"], [freeride_part])
-        shared_kinds = [p["kind"] for p in downhill["render"]]
-        self.assertEqual(shared_kinds, ["fill", "outline", "text", "outline"])
-
-    def test_ski_runs_skitour_has_difficulty_variant_rows(self):
-        # 2026-08-16 fourth follow-up: freeride pulled out of the shared
-        # ski-difficulty-v1 scale, split into its own "Freeride" row (fixed
-        # orange) alongside a "Skiroute" row for everything else - see
-        # comment above GROUP_VARIANTS. Unlike downhill/nordic, "Skiroute"
-        # has no hand-authored "render": ski-runs-skitour-line's dasharray
-        # was never a case-expression (always a plain literal [3, 6]), so
-        # it derives normally from the real style layer.
-        skitour = self.groups_by_key["ski-runs-skitour"]
-        self.assertEqual(
-            [(v["axis"], v["label"]) for v in skitour["variants"]],
-            [("difficulty", "Skiroute"), ("difficulty", "Freeride")],
-        )
-        self.assertEqual(skitour["variants"][0]["render"], [{
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
-            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
-            "radius": None, "stroke_width": None, "icon": None,
-        }])
-        self.assertEqual(skitour["variants"][1]["render"], [{
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
-            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
-            "radius": None, "stroke_width": None, "icon": None,
-        }])
-        shared_kinds = [p["kind"] for p in skitour["render"]]
-        self.assertEqual(shared_kinds, ["fill", "text"])
-
-    def test_downhill_and_nordic_variant_dasharray_matches_style_case_expression(self):
-        # GROUP_VARIANTS' hand-authored dasharray values for the grooming
-        # rows (see comment above GROUP_VARIANTS) are NOT derived
-        # automatically from the style - extract_part_dasharray can't parse
-        # a case-expression's branches, only a literal 2-element array (see
-        # its docstring). This reads the real case-expression straight out
-        # of styles/openskimap-style.json so the hand-authored values and
-        # the actual style can't silently drift apart.
-        def parse_grooming_dasharray_branches(case_expr):
-            # ["case", ["==", ["get", "grooming"], value], ["literal", [a, b]], ..., fallback]
-            pairs = case_expr[1:-1]
-            branches = {}
-            for i in range(0, len(pairs), 2):
-                cond, val = pairs[i], pairs[i + 1]
-                value = cond[2]
-                branches[value] = val[1] if isinstance(val, list) and val[0] == "literal" else val
-            return branches
-
+    def test_downhill_and_loipen_dasharray_matches_style_case_expression(self):
+        # Regression guard: the hand-authored Pisten/Loipen dasharrays must
+        # not silently drift from the real line-dasharray case-expressions
+        # in styles/openskimap-style.json.
         with open(STYLE_PATH, encoding="utf-8") as f:
             style = json.load(f)
         by_id = {layer["id"]: layer for layer in style["layers"]}
 
-        downhill_branches = parse_grooming_dasharray_branches(by_id["ski-runs-downhill-line"]["paint"]["line-dasharray"])
-        nordic_branches = parse_grooming_dasharray_branches(by_id["ski-runs-nordic-line"]["paint"]["line-dasharray"])
+        downhill_expr = by_id["ski-runs-downhill-line"]["paint"]["line-dasharray"]
+        self.assertEqual(downhill_expr[0], "case")
+        # [case, [==,grooming,mogul], [1,3], [==,grooming,backcountry], [3,6], [==,difficulty,freeride], [3,6], null]
+        self.assertEqual(downhill_expr[1], ["==", ["get", "grooming"], "mogul"])
+        self.assertEqual(downhill_expr[2], ["literal", [1, 3]])
+        self.assertEqual(downhill_expr[3], ["==", ["get", "grooming"], "backcountry"])
+        self.assertEqual(downhill_expr[4], ["literal", [3, 6]])
 
-        downhill_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-downhill"]}
-        self.assertEqual(downhill_variants["Buckelpiste"]["dasharray"], downhill_branches["mogul"])
-        self.assertEqual(downhill_variants["Piste (Backcountry)"]["dasharray"], downhill_branches["backcountry"])
-        self.assertEqual(downhill_variants["Freeride"]["dasharray"], downhill_branches["freeride"])
-        self.assertIsNone(downhill_variants["Piste"]["dasharray"])
+        rows = self.legend_by_heading["Pisten"]["rows"]
+        by_label = {row["label"]: row for row in rows}
+        self.assertEqual(by_label["Buckelpiste"]["render"][0]["dasharray"], [1, 3])
+        self.assertEqual(by_label["Skiroute"]["render"][0]["dasharray"], [3, 6])
 
-        nordic_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-nordic"]}
-        self.assertEqual(nordic_variants["Loipe (Backcountry)"]["dasharray"], nordic_branches["backcountry"])
-        self.assertIsNone(nordic_variants["Loipe"]["dasharray"])
+        nordic_expr = by_id["ski-runs-nordic-line"]["paint"]["line-dasharray"]
+        self.assertEqual(nordic_expr[0], "case")
+        self.assertEqual(nordic_expr[1], ["==", ["get", "grooming"], "backcountry"])
+        self.assertEqual(nordic_expr[2], ["literal", [2, 4]])
+        loipen_rows = self.legend_by_heading["Loipen"]["rows"]
+        self.assertEqual(
+            {row["label"]: row["render"][1]["dasharray"] for row in loipen_rows},
+            {"Präpariert": None, "Unpräpariert": [2, 4]},
+        )
 
-    def test_freeride_variant_color_matches_style_case_expression(self):
-        # GROUP_VARIANTS' hand-authored fixed color for the "Freeride" rows
-        # (2026-08-16 fourth follow-up, see comment above GROUP_VARIANTS) is
-        # NOT derived automatically from the style either - it's the output
-        # of the outer case's `difficulty == "freeride"` branch, which
-        # extract_part_color/_resolve_case_branch deliberately skips (it
-        # only resolves the difficulty_convention branch, see
-        # layer_metadata_extractor.py). This reads that branch's literal
-        # color straight out of styles/openskimap-style.json for both
-        # affected line-color expressions so it can't silently drift from
-        # the hand-authored value.
+    def test_freeride_color_matches_style_case_expression(self):
         with open(STYLE_PATH, encoding="utf-8") as f:
             style = json.load(f)
         by_id = {layer["id"]: layer for layer in style["layers"]}
@@ -516,134 +438,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             case_expr = by_id[layer_id]["paint"]["line-color"]
             self.assertEqual(case_expr[1], ["==", ["get", "difficulty"], "freeride"])
             freeride_color = case_expr[2]
-            for group_key in ("ski-runs-downhill", "ski-runs-skitour"):
-                freeride_variant = next(
-                    v for v in generate_layer_list.GROUP_VARIANTS[group_key] if v["label"] == "Freeride"
-                )
-                self.assertEqual(
-                    freeride_variant["render"][0]["color"],
-                    {"mode": "fixed", "value": freeride_color},
-                )
-
-    def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
-        lifts = self.groups_by_key["ski-lifts"]
-        self.assertEqual(
-            [(v["axis"], v["label"]) for v in lifts["variants"]],
-            [
-                ("status", "In Betrieb"),
-                ("status", "Geplant / Im Bau"),
-                ("status", "Außer Betrieb"),
-                ("access", "Privat"),
-            ],
-        )
-        outline_part = {
-            "kind": "outline", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-            "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        line_operating = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 82%, 42%)"},
-            "stroke_color": None, "opacity": 0.8, "width": 3.0, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        line_planned = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(210, 70%, 45%)"},
-            "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [4, 2],
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        line_disused = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 53%, 42%)"},
-            "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        line_operating_private = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 82%, 42%)"},
-            "stroke_color": None, "opacity": 0.8, "width": 3.0, "dasharray": [1, 2],
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-        line_other_private = {
-            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 53%, 42%)"},
-            "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
-            "radius": None, "stroke_width": None, "icon": None,
-        }
-
-        # axis "status": casing appears exactly once (only under "In
-        # Betrieb"), never duplicated into "access" — regression guard for
-        # the old 4-combo shape where casing was in 2 of 4 entries.
-        self.assertEqual(lifts["variants"][0]["render"], [outline_part, line_operating])
-        self.assertEqual(lifts["variants"][1]["render"], [line_planned])
-        self.assertEqual(lifts["variants"][2]["render"], [line_disused])
-        self.assertEqual(lifts["variants"][3]["render"], [line_operating_private, line_other_private])
-
-        # mixed_lift's icon pair is deliberately NOT a variant (see comment
-        # above GROUP_VARIANTS) - it stays in the flat shared render instead,
-        # checked in test_ski_lifts_render_parts.
-        shared_kinds = sorted(p["kind"] for p in lifts["render"])
-        self.assertEqual(shared_kinds, ["icon", "icon", "icon", "text"])
-
-        all_render_parts = lifts["render"] + [p for v in lifts["variants"] for p in v["render"]]
-        self.assertEqual(all_render_parts.count(outline_part), 1)
-
-    def test_groups_without_variants_config_are_unaffected(self):
-        for key in ("ski-areas-alpine", "ski-areas-nordic"):
-            group = self.groups_by_key[key]
-            self.assertIsNone(group["variants"])
-            self.assertEqual(len(group["render"]), len(group["style_layers"]))
-
-    def test_legend_sections_still_has_one_scale_after_variant_split(self):
-        sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1"})
-
-    def test_variant_part_conformance_counts(self):
-        # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3: a style layer lands in
-        # render[] or in exactly one variants[] entry, never in both, never
-        # in more than one. For ski-lifts (variants derived 1:1 from real
-        # style layers via style_layer_ids), counting total Part-instances
-        # across render + all variants and comparing against
-        # len(style_layers) verifies this directly: equal counts ==
-        # conformant.
-        #
-        # ski-runs-downhill/ski-runs-nordic/ski-runs-skitour's variants
-        # (2026-08-16 second/fourth follow-ups, see comment above
-        # GROUP_VARIANTS) are (partly) hand-authored literal Parts, not
-        # derived per style layer - one physical style layer
-        # (-downhill-line/-connection-line/-nordic-line/-skitour-line)
-        # deliberately produces MULTIPLE Parts (one per grooming/difficulty
-        # row), so the 1:1 count check does not apply to these three groups.
-        # What still holds (and is what §5.3 actually cares about) is that
-        # those line layers never ALSO appear in the flat render[] - they're
-        # variant-only, checked in test_ski_runs_downhill_has_grooming_variant_rows,
-        # test_ski_runs_nordic_has_grooming_variant_rows, and
-        # test_ski_runs_skitour_has_difficulty_variant_rows via the absence
-        # of any scale-colored/white/dashed line Part in render[]. ski-spots
-        # (2026-08-16 lift-status-icon-cleanup follow-up) is the same shape
-        # again: one physical "ski-spots" circle layer, six hand-authored
-        # spot_type rows, checked in test_ski_spots_has_spot_type_variant_rows.
-        def total_part_count(group):
-            count = len(group["render"])
-            if group["variants"]:
-                count += sum(len(v["render"]) for v in group["variants"])
-            return count
-
-        lifts = self.groups_by_key["ski-lifts"]
-        self.assertEqual(total_part_count(lifts), len(lifts["style_layers"]))
-        self.assertEqual(len(lifts["style_layers"]), 10)
-
-        nordic = self.groups_by_key["ski-runs-nordic"]
-        self.assertEqual(len(nordic["style_layers"]), 4)
-        self.assertEqual(total_part_count(nordic), 5)  # 3 flat + 2 grooming rows
-
-        skitour = self.groups_by_key["ski-runs-skitour"]
-        self.assertEqual(len(skitour["style_layers"]), 3)
-        self.assertEqual(total_part_count(skitour), 4)  # 2 flat + 2 difficulty rows
-
-        downhill = self.groups_by_key["ski-runs-downhill"]
-        self.assertEqual(len(downhill["style_layers"]), 6)
-        self.assertEqual(total_part_count(downhill), 8)  # 4 flat + 3 grooming rows + 1 freeride row
-
-        spots = self.groups_by_key["ski-spots"]
-        self.assertEqual(len(spots["style_layers"]), 1)
-        self.assertEqual(total_part_count(spots), 6)  # 0 flat + 6 spot_type rows
+            freeride_row = next(row for row in self.legend_by_heading["Pisten"]["rows"] if row["label"] == "Freeride")
+            self.assertEqual(freeride_row["render"][0]["color"], {"mode": "fixed", "value": freeride_color})
 
 
 if __name__ == "__main__":

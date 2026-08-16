@@ -5,6 +5,32 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 21:44
+
+### Changed
+- **Breaking:** `dist/layer-list.json` v3.0 (vorher v2.1) — `styles[].groups[]` verliert `render`/
+  `variants` komplett und ist jetzt reine Toggle-/Rendering-Metadaten (`source_layer(s)`, `name`,
+  `template`, `original_file`, `style_layers`). Neuer Top-Level-Block `legend[]` (Array aus
+  `{heading, rows: [{label, render, style_layer_ids}]}`) bündelt Legend-Zeilen frei über mehrere
+  `groups[]`-Einträge hinweg — löst das Problem, dass "Pisten" und "Skitouren" bisher nicht unter
+  einer gemeinsamen Legend-Überschrift auftauchen konnten, obwohl beide unabhängig togglebar
+  bleiben sollen. `legend_sections[]` umbenannt zu `legend_scales[]` (Kollision mit dem neuen
+  `legend[]`-Namen vermieden). Siehe
+  `docs/superpowers/specs/2026-08-16-legend-layer-split-design.md`.
+- Terminologie-Korrektur: "Skiroute" (bisher fälschlich die `uses=skitour`-Kategorie) heißt jetzt
+  "Skitour" (kein Lift, echtes Skitourengehen); der Downhill-Backcountry-Zustand
+  (`grooming=="backcountry"`, bisher "Piste (Backcountry)") heißt jetzt "Skiroute" (weiterhin
+  liftgestützte Abfahrt, nur ungepräpariert). "Piste"/"Loipe" umbenannt zu "Präpariert",
+  "Loipe (Backcountry)" zu "Unpräpariert" — einheitliches Vokabular über Pisten- und
+  Loipen-Überschrift hinweg. Buckelpiste und Freeride bleiben eigene Zeilen; Freeride ist jetzt
+  eine einzige gemeinsame Zeile für Pisten UND Skitour (vorher zwei getrennte, da das alte
+  `variants[]`-Modell keine gruppenübergreifenden Zeilen erlaubte).
+- `scripts/generate_layer_list.py`: `GROUP_VARIANTS` ersetzt durch `LEGEND_HEADINGS`
+  (`heading -> rows`), `_build_render_and_variants`/`_build_legend_sections` ersetzt durch
+  `_build_legend_row`/`_build_legend`/`_build_legend_scales`. `_build_render` selbst unverändert.
+  119/119 Tests grün (neue Tests für die Legend-Bau-Funktionen, alle bisherigen Real-Style-Checks
+  auf die neue Struktur umgestellt).
+
 ## [Unreleased] - 2026-08-16 21:05
 
 ### Fixed

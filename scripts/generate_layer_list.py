@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Builds dist/layer-list.json per GEODATA_PLUGIN_STANDARD.md §5.
+Builds dist/layer-list.json per docs/superpowers/specs/
+2026-08-16-legend-layer-split-design.md (v3.0 — layer-list.json v3.0's
+own local extension, ahead of GEODATA_PLUGIN_STANDARD.md formally adopting
+it; the standard as of v2.1.0 still describes the pre-split
+groups[].render/variants model).
 
 Unlike geodata-overlays (many per-file datasets, each becoming its own
 group, always exactly one source-layer per group), geodata-openskimap's
@@ -9,27 +13,32 @@ groups can span multiple source-layers: each real-world concept (e.g.
 source-layers (a _point and a _poly layer) so tippecanoe never has to
 tile mixed geometry types in one layer — but its style layers (fill,
 circle marker, label) still belong together as one togglable unit for
-the frontend, which is the actual "labels + polygons + lines that
-logically belong together" grouping the spec's legend/toggle automation
-is for. Groups are therefore defined explicitly by style-layer id in
+the frontend. Groups are therefore defined explicitly by style-layer id in
 GROUP_MAP below, not derived from `source-layer` equality.
 
 `template` and `original_file` have no direct equivalent without a
 per-group dataset config or source file: `template` is set to the
-group key itself (each of our 8 groups is its own category),
+group key itself (each of our 12 groups is its own category),
 `original_file` points at the shared GeoPackage source. `source_layer`
 holds the group's first (file-order) source-layer for spec compliance.
-`source_layers` (plural) is the sole remaining locally-proposed extension,
-not part of the standard — it lists every distinct source-layer the group
-spans, since collapsing to a single string would lose information for
-groups split across point/poly or line/poly PMTiles layers. `variants`
-(including its `axis` field) IS part of GEODATA_PLUGIN_STANDARD.md as of
-v2.1.0 §5.3 (formerly tracked as geodata-plugin-standard#4, now resolved);
-the `axis` naming/grouping and the shared-vs-variant split themselves
-remain a reference-implementation judgment call the standard explicitly
-leaves open. `variants` describes filter-based style-layer groupings per
-MapLibre `filter` — not "mutually-exclusive": the standard explicitly
-asserts no exclusivity semantics.
+`source_layers` (plural) is a locally-proposed extension, not part of the
+standard — it lists every distinct source-layer the group spans, since
+collapsing to a single string would lose information for groups split
+across point/poly or line/poly PMTiles layers.
+
+`groups[]` (this module's GROUP_MAP/GROUP_NAMES) is now PURE toggle/
+rendering metadata — "what can be turned on/off on the map, what style
+layers does that control" — and carries no Part-level rendering or legend
+information at all. That information lives entirely in the separate
+`legend[]` top-level array (LEGEND_HEADINGS below), which is NOT scoped
+1:1 to a single group: one legend heading's rows can pull style layers
+from several different groups[] entries (e.g. "Pisten" bundles rows from
+both the "ski-runs-downhill" AND "ski-runs-skitour" groups, which stay
+independently toggleable on the map). This split exists because the old
+model (groups[].render/variants, v2.1.0) had no way to express "these
+rows from two different toggle-groups belong under one legend heading" —
+see the design doc's Problem section for the concrete case that surfaced
+this.
 """
 import json
 import os
@@ -56,7 +65,8 @@ SOURCE_GPKG_REL_PATH = "data/src/openskidata.gpkg"
 # style layer id -> logical group key. Every layer in styles/openskimap-style.json
 # must appear here — build_layer_list() raises if one doesn't, so a future layer
 # added to the style without updating this map fails loudly instead of silently
-# missing the frontend's layer-list.json.
+# missing the frontend's layer-list.json. Purely a toggle-grouping map now (see
+# module docstring) — has no bearing on legend content, that's LEGEND_HEADINGS below.
 GROUP_MAP = {
     "ski-areas-alpine-fill": "ski-areas-alpine",
     "ski-areas-alpine-circle": "ski-areas-alpine",
@@ -77,7 +87,7 @@ GROUP_MAP = {
     "ski-runs-skitour-labels": "ski-runs-skitour",
     # Connection ist visuell mit den Pisten verschmolzen (identische
     # Difficulty-Faerbung + weisse Casing) und wandert deshalb in dieselbe
-    # Legenden-Gruppe wie Downhill statt eine eigene zu bekommen - vom
+    # Toggle-Gruppe wie Downhill statt eine eigene zu bekommen - vom
     # Nutzer nach visueller Pruefung so bestaetigt (2026-08-16 Follow-up).
     "ski-runs-connection-casing": "ski-runs-downhill",
     "ski-runs-connection-line": "ski-runs-downhill",
@@ -103,7 +113,7 @@ GROUP_MAP = {
     "ski-lifts-icons-mixed-chair": "ski-lifts",
 }
 
-# group key -> German display name shown in downstream legend UIs. Every key
+# group key -> German display name shown in downstream toggle UIs. Every key
 # in GROUP_MAP's values must appear here (build_layer_list raises KeyError
 # via direct dict indexing if one doesn't, same fail-fast convention as
 # GROUP_MAP itself).
@@ -122,28 +132,19 @@ GROUP_NAMES = {
     "ski-lifts": "Lifte",
 }
 
-# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v2.1.0
-# §5.5). All four run-category groups render categorized colors from the
-# same difficulty match expression (verified byte-identical against
+# group key -> shared legend_scale_id. Used only internally by _build_render
+# (via _build_legend_row) to resolve a categorized color's scale_id — not
+# part of groups[] itself anymore (see module docstring). All three
+# run-category groups render categorized colors from the same difficulty
+# match expression (verified byte-identical against
 # styles/openskimap-style.json — see design doc 2026-08-14), so they share
-# one central legend — a genuine cross-group sharing benefit. ski-lifts had
-# a "ski-lift-status-v1" scale here too until the 2026-08-16
-# lift-status-icon-cleanup follow-up: each status-color match was replaced
-# by fixed per-layer colors (every lift line layer is already
-# status-filtered, so a shared multi-branch scale only produced incorrect
-# cross-contaminated legend rows - every variant row pointed at the SAME
-# unfiltered 7-item scale, e.g. "In Betrieb" incorrectly also listing
-# "Disused"/"Abandoned"). See design doc
-# 2026-08-16-lift-status-icon-cleanup-design.md, Baustein 4. ski-spots
-# (spot_type) had its own "ski-spot-type-v1" scale here too (v2.0
-# migration), removed the same day for the same reason as ski-lifts:
-# unlike the difficulty scale, it was used by exactly one group's one Part
-# — the "shared scale" indirection bought nothing, since there was never a
-# second consumer to share with. Its 6 categories are now hand-authored
-# "spot_type" variant rows instead (see comment above GROUP_VARIANTS),
-# each with its own fixed color read straight out of the real
-# ski-spots circle-color match. No categorized color remains in either
-# ski-lifts or ski-spots, so neither has a GROUP_LEGEND_SCALE entry now.
+# one central legend scale. ski-lifts/ski-spots had their own single-use
+# scales here too (v2.0/v2.1 migrations), both removed 2026-08-16
+# (lift-status-icon-cleanup follow-up): unlike the difficulty scale, each
+# had exactly one consumer, so the shared-scale indirection bought nothing
+# — see docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md,
+# Baustein 4. Both groups' legend rows are fixed-color now (LEGEND_HEADINGS
+# below), no categorized color left in either.
 GROUP_LEGEND_SCALE = {
     "ski-runs-downhill": "ski-difficulty-v1",
     "ski-runs-nordic": "ski-difficulty-v1",
@@ -153,98 +154,62 @@ LEGEND_SCALE_LABELS = {
     "ski-difficulty-v1": "Schwierigkeitsgrade",
 }
 
-# group key -> list of {"axis": ..., "label": ..., "style_layer_ids": [...]}
-# — filter-based variants within the group, grouped by a named `axis` per
-# GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3 (design docs: 2026-08-14
-# legend-variants for the original shared/variant split, 2026-08-16 for this
-# axis retaxonomy — geodata-plugin-standard#4, part of the standard as of
-# v2.1.0). Style layers not listed in ANY variant here stay in the group's
-# shared `render`. Groups not listed here at all get `variants: None` and
-# unchanged `render` behavior.
+# heading -> list of {"label": ..., "style_layer_ids": [...], "render": [...]?}
+# — the legend[] content (docs/superpowers/specs/
+# 2026-08-16-legend-layer-split-design.md, Baustein 3), independent of
+# GROUP_MAP/groups[]. A row's Part list is derived from the real style
+# layer(s) named in "style_layer_ids" via _build_render UNLESS the row
+# already carries an explicit "render" key (a literal list[dict] of Parts)
+# — then that literal list is used as-is. The derived path requires every
+# id in "style_layer_ids" to belong to the SAME GROUP_MAP group (asserted
+# in _build_legend_row) — _build_render needs one group_key for scale
+# resolution, so a row spanning layers from different groups (e.g.
+# "Freeride" below) must always be hand-authored.
 #
-# §5.3 requires that a style layer land in `render` or in EXACTLY ONE
-# `variants[]` entry, never in both and never in more than one entry — the
-# standard does NOT permit cross-entry duplication. ski-lifts is fully
-# conformant (each of its 6 variant-bearing style layers appears in exactly
-# one axis entry — see the design doc's paint-coupling investigation for how
-# it was split into orthogonal "status"/"access" axes without duplication;
-# 2026-08-16 lift-status-icon-cleanup follow-up split "status" into three
-# tiers instead of two, see docs/superpowers/specs/
-# 2026-08-16-lift-status-icon-cleanup-design.md). The mixed_lift icon pair
-# (ski-lifts-icons-mixed-gondola/-chair) deliberately has NO variant entry
-# here (2026-08-16 follow-up, undoing the design doc's Baustein 5 choice) —
-# a dedicated "lift_type"/"Kombibahn" legend row would be the only lift_type
-# ever surfaced in the legend, inconsistent with the other 11 lift_type
-# values, which are folded into the group's one generic (unlabeled) icon
-# Part in `render`. Both mixed_lift layers now land in the flat `render`
-# list too, alongside that generic icon Part — §5.3 conformant (still lands
-# in exactly one place, just `render` instead of a variant), at the cost of
-# the flat `render` list literally naming "ski-gondola" for one Part even
-# though it only renders for mixed_lift features — the same imprecision the
-# group's other 11 lift_type values already have (their icon match can't be
-# resolved to a literal at all, so their generic Part shows icon: None).
+# Terminology fix (2026-08-16, superseding the 2026-08-16
+# lift-status-icon-cleanup naming): "Skiroute" previously labeled the
+# ski-runs-skitour group's main row (uses=skitour, real ski touring, no
+# lift) — factually wrong. Corrected: "Skiroute" = a downhill piste in its
+# backcountry/ungroomed state (grooming=="backcountry") — still an
+# "Abfahrt" via lift-accessible piste infrastructure, just not groomed.
+# "Skitour" = the separate uses=skitour category — no lift, ski touring
+# proper. Both now sit side by side as distinct rows under the same
+# "Pisten" heading, which is what made the previous name collision worth
+# fixing (they used to live in separate, disconnected legend blocks where
+# the ambiguity was less visible).
 #
-# ski-runs-downhill/ski-runs-nordic had a grooming-terrain/snowmaking
-# variants[] split here previously (v2.1.0 migration, 2026-08-14), built
-# around dedicated filtered style layers (-gladed, -ungroomed,
-# -nordic-ungroomed). The 2026-08-16 piste-restyling follow-up removed those
-# filtered layers entirely, consolidating grooming into a single
-# `line-dasharray` case-expression on -downhill-line/-nordic-line (mogul =
-# dotted, backcountry = dashed for downhill; backcountry = dashed for
-# nordic) — briefly dropped from GROUP_VARIANTS entirely as a result (no
-# distinct filtered style layer per grooming state left to hang a
-# variants[] entry off of), then reinstated the same day (second follow-up)
-# once it became clear the legend still needs one row per grooming state
-# (a consumer can't otherwise learn that a dashed piste means backcountry
-# vs. that a dotted one means mogul). Since a single style layer's
-# case-expression can't be parsed into separate Parts automatically
-# (extract_part_dasharray only reads a literal 2-element array — see its
-# docstring), these two groups' variant Parts are hand-authored literals
-# (see _build_render_and_variants' "render" key handling) rather than
-# derived from the style like every other variant here — a regression test
-# (test_generate_layer_list.py) reads the real case-expression values
-# straight out of styles/openskimap-style.json so the two can't silently
-# drift apart. -downhill-snowmaking/-nordic-snowmaking (v2.1.0 migration,
-# same never-matches-real-data issue — see docs/TODO.md, the GeoPackage's
-# boolean columns never export `true`) were removed from the style entirely
-# in this same follow-up rather than kept as permanently-empty layers, same
-# reasoning as the earlier -gladed removal. ski-runs-downhill's prior KNOWN
-# DEVIATION from the
-# "never in more than one variants[] entry" rule (gladed/ungroomed combo)
-# no longer applies — style_layer_ids may repeat across these three
-# grooming-state variants (deliberate: one physical layer represents three
-# legend rows), but §5.3's actual invariant (no style layer split between
-# `render` and a variant, or landing in `render` itself) still holds, since
-# these style layers are entirely variant-only now, never in the flat
-# `render` list.
+# "Piste"/"Loipe" renamed to "Präpariert" (shared vocabulary between the
+# "Pisten" and "Loipen" headings, user request 2026-08-16); "Piste
+# (Backcountry)" renamed to "Skiroute" (see above); "Loipe (Backcountry)"
+# renamed to "Unpräpariert". Buckelpiste/Freeride keep their own rows
+# rather than collapsing into "Unpräpariert" — decoupling legend rows from
+# the old 1:1-Part-per-style-layer model removes the pressure that used to
+# make fine-grained rows awkward (each needed its own entry wedged into
+# exactly one group). Freeride specifically benefits: downhill and skitour
+# used to need two separate "Freeride" rows (one per group, since the old
+# variants[] couldn't span groups); now one shared row's style_layer_ids
+# lists layers from both, since they render identically (verified:
+# hsl(34, 100%, 50%), dasharray [3, 6], byte-identical in
+# styles/openskimap-style.json for ski-runs-downhill-line/
+# -connection-line/ski-runs-skitour-line).
 #
-# Fourth follow-up, same day: "freeride" pulled out of the shared
-# ski-difficulty-v1 color scale entirely and given its own "difficulty"-axis
-# row (own fixed orange, not a scale reference) in ski-runs-downhill AND
-# ski-runs-skitour — real data confirms freeride/extreme never occurs in
-# nordic runs at all (verified against the AT-filtered GeoPackage), so
-# nordic gets no such row and its scale genuinely never had freeride to
-# begin with. styles/openskimap-style.json's color match expressions had
-# their difficulty branches restructured accordingly (an outer
-# `difficulty == "freeride"` case-branch ahead of the difficulty_convention
-# branches, whose nested match expressions no longer list freeride/extreme/
-# expert at all — resolved by _resolve_case_branch in
-# layer_metadata_extractor.py the same way as before, so the shared scale's
-# extracted items shrink automatically without any extractor changes).
-# ski-runs-downhill-line/-connection-line's line-dasharray case-expression
-# gained a `difficulty == "freeride"` branch (dashed [3, 6], same pattern as
-# backcountry) placed AFTER the grooming branches, so grooming still wins
-# for a feature that happens to be both freeride-difficulty and mogul/
-# backcountry-groomed. ski-runs-skitour-line needed no dasharray change (it
-# was already unconditionally dashed regardless of difficulty) — only its
-# "Skiroute" row is new, and it's derived normally (no hand-authored
-# "render") since skitour's dasharray was never a case-expression to begin
-# with.
-GROUP_VARIANTS = {
-    "ski-runs-downhill": [
+# Since a single style layer's line-dasharray case-expression can't be
+# parsed into separate Parts automatically (extract_part_dasharray only
+# reads a literal 2-element array — see its docstring), the Pisten/Loipen
+# grooming-state rows are hand-authored literals, same as before the
+# split. "Skitour" is the one row still derived normally (no hand-authored
+# "render") — ski-runs-skitour-line's dasharray is a plain literal (always
+# [3, 6], no grooming-based case-expression), so it needs no override.
+#
+# ski-lifts' status/access rows and ski-spots' spot_type rows are
+# unchanged in content from their 2026-08-16 lift-status-icon-cleanup
+# shape — only relocated here from the old GROUP_VARIANTS, with the
+# "axis" field dropped (superseded by "heading": rows are already
+# unambiguously clustered by which LEGEND_HEADINGS list they're in).
+LEGEND_HEADINGS = {
+    "Pisten": [
         {
-            "axis": "grooming",
-            "label": "Piste",
+            "label": "Präpariert",
             "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
             "render": [{
                 "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
@@ -253,17 +218,6 @@ GROUP_VARIANTS = {
             }],
         },
         {
-            "axis": "grooming",
-            "label": "Piste (Backcountry)",
-            "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
-            "render": [{
-                "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
-                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
-                "radius": None, "stroke_width": None, "icon": None,
-            }],
-        },
-        {
-            "axis": "grooming",
             "label": "Buckelpiste",
             "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
             "render": [{
@@ -272,44 +226,24 @@ GROUP_VARIANTS = {
                 "radius": None, "stroke_width": None, "icon": None,
             }],
         },
-        # "difficulty" axis, not "grooming": freeride is its own difficulty
-        # class (2026-08-16 fourth follow-up), pulled out of the shared
-        # ski-difficulty-v1 scale entirely (no longer a scale color, its
-        # own fixed orange) and given its own dashed row, on top of
-        # whatever grooming state a feature has (grooming still wins for
-        # mogul/backcountry — see the line-dasharray case-expression on
-        # ski-runs-downhill-line/-connection-line, difficulty=="freeride"
-        # is checked after those two branches).
         {
-            "axis": "difficulty",
-            "label": "Freeride",
+            "label": "Skiroute",
             "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
             "render": [{
-                "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+                "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
                 "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
                 "radius": None, "stroke_width": None, "icon": None,
             }],
         },
-    ],
-    "ski-runs-skitour": [
-        # Unlike downhill/nordic, ski-runs-skitour-line's dasharray is a
-        # plain literal (always [3, 6], no grooming-based case-expression -
-        # see styles/openskimap-style.json), so the "Skiroute" row doesn't
-        # need a hand-authored "render": it's derived normally from the
-        # real style layer via style_layer_ids, same as any group with no
-        # GROUP_VARIANTS entry. Freeride is split out for the same reason
-        # as downhill's (own fixed orange color, pulled from the shared
-        # scale) - unlike downhill, no dasharray change was needed in the
-        # style, since skitour was already unconditionally dashed.
         {
-            "axis": "difficulty",
-            "label": "Skiroute",
+            "label": "Skitour",
             "style_layer_ids": ["ski-runs-skitour-line"],
         },
         {
-            "axis": "difficulty",
             "label": "Freeride",
-            "style_layer_ids": ["ski-runs-skitour-line"],
+            "style_layer_ids": [
+                "ski-runs-downhill-line", "ski-runs-connection-line", "ski-runs-skitour-line",
+            ],
             "render": [{
                 "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
                 "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
@@ -317,85 +251,78 @@ GROUP_VARIANTS = {
             }],
         },
     ],
-    "ski-runs-nordic": [
+    "Loipen": [
         {
-            "axis": "grooming",
-            "label": "Loipe",
-            "style_layer_ids": ["ski-runs-nordic-line"],
-            "render": [{
-                "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
-                "radius": None, "stroke_width": None, "icon": None,
-            }],
+            "label": "Präpariert",
+            "style_layer_ids": ["ski-runs-nordic-casing", "ski-runs-nordic-line"],
+            "render": [
+                {
+                    "kind": "outline", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+                    "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
+                    "radius": None, "stroke_width": None, "icon": None,
+                },
+                {
+                    "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+                    "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+                    "radius": None, "stroke_width": None, "icon": None,
+                },
+            ],
         },
         {
-            "axis": "grooming",
-            "label": "Loipe (Backcountry)",
-            "style_layer_ids": ["ski-runs-nordic-line"],
-            "render": [{
-                "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [2, 4],
-                "radius": None, "stroke_width": None, "icon": None,
-            }],
+            "label": "Unpräpariert",
+            "style_layer_ids": ["ski-runs-nordic-casing", "ski-runs-nordic-line"],
+            "render": [
+                {
+                    "kind": "outline", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+                    "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
+                    "radius": None, "stroke_width": None, "icon": None,
+                },
+                {
+                    "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+                    "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [2, 4],
+                    "radius": None, "stroke_width": None, "icon": None,
+                },
+            ],
         },
     ],
-    "ski-lifts": [
-        {"axis": "status", "label": "In Betrieb",
-         "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
-        {"axis": "status", "label": "Geplant / Im Bau",
-         "style_layer_ids": ["ski-lifts-line-planned"]},
-        {"axis": "status", "label": "Außer Betrieb",
-         "style_layer_ids": ["ski-lifts-line-disused"]},
-        # Two Parts bundled under one axis entry per §5.3's "render:
-        # Array<Part> can have more than one Part when one filter condition
-        # covers several style layers" — not because both are simultaneously
-        # visible: -line-private is status==operating, -line-private-other
-        # is status!=operating, i.e. they are themselves status-exclusive.
-        {"axis": "access", "label": "Privat",
-         "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
+    "Lifte": [
+        {"label": "In Betrieb", "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
+        {"label": "Geplant / Im Bau", "style_layer_ids": ["ski-lifts-line-planned"]},
+        {"label": "Außer Betrieb", "style_layer_ids": ["ski-lifts-line-disused"]},
+        {"label": "Privat", "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
     ],
-    # ski-spots is one physical circle layer whose circle-color is a single
-    # match on spot_type (styles/openskimap-style.json, layer "ski-spots") —
-    # same "one layer, several legend rows" shape as the grooming/difficulty
-    # rows above, all six rows share style_layer_ids: ["ski-spots"]. Added
-    # 2026-08-16 (lift-status-icon-cleanup follow-up) replacing the
-    # previous single generic circle Part whose color pointed at a
-    # "ski-spot-type-v1" GROUP_LEGEND_SCALE entry — that scale had exactly
-    # one consumer (this one Part), so the shared-scale indirection bought
-    # nothing (see comment above GROUP_LEGEND_SCALE). Colors below are
-    # copied verbatim from the real match expression's branches.
-    "ski-spots": [
-        {"axis": "spot_type", "label": "Lift Station", "style_layer_ids": ["ski-spots"],
+    "Ski-Spots": [
+        {"label": "Lift Station", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#5a6b8c"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
              "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
          }]},
-        {"axis": "spot_type", "label": "Halfpipe", "style_layer_ids": ["ski-spots"],
+        {"label": "Halfpipe", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#8e44ad"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
              "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
          }]},
-        {"axis": "spot_type", "label": "Crossing", "style_layer_ids": ["ski-spots"],
+        {"label": "Crossing", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#e67e22"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
              "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
          }]},
-        {"axis": "spot_type", "label": "Avalanche Transceiver Training", "style_layer_ids": ["ski-spots"],
+        {"label": "Avalanche Transceiver Training", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#c0392b"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
              "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
          }]},
-        {"axis": "spot_type", "label": "Avalanche Transceiver Checkpoint", "style_layer_ids": ["ski-spots"],
+        {"label": "Avalanche Transceiver Checkpoint", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#c0392b"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
              "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
          }]},
-        {"axis": "spot_type", "label": "Sonstige", "style_layer_ids": ["ski-spots"],
+        {"label": "Sonstige", "style_layer_ids": ["ski-spots"],
          "render": [{
              "kind": "circle", "color": {"mode": "fixed", "value": "#7f8c8d"},
              "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
@@ -407,40 +334,38 @@ GROUP_VARIANTS = {
 
 def _build_render(group_layers, group_key, scale_items):
     """
-    Build the render:Array<Part> list for one group (GEODATA_PLUGIN_STANDARD.md
-    v2.1.0 §5.3): one Part per layer in group_layers, in style order. Layers
-    without a mapped kind (determine_part_kind returns None) are skipped, so
-    render can be shorter than group_layers.
+    Build a render:Array<Part> list for a set of style layers sharing one
+    group_key: one Part per layer in group_layers, in caller-supplied order.
+    Layers without a mapped kind (determine_part_kind returns None) are
+    skipped, so the result can be shorter than group_layers.
 
     A Part whose color is categorized (extract_part_color returns
     "categorized") looks up GROUP_LEGEND_SCALE[group_key]:
       - configured: color becomes {"mode": "scale", "scale_id": ...}; the
         Part's legend items are recorded into scale_items[scale_id] on
-        first occurrence. A later Part (in this group or any other) sharing
+        first occurrence. A later Part (in this call or any other) sharing
         the same scale_id with different items logs a warning instead of
-        raising (§5.5) — first-seen items win.
-      - missing (§5.5 error case — a categorized color with no configured
-        scale): log_warn(...), color set to None instead of a scale
-        reference. No build abort.
+        raising — first-seen items win.
+      - missing (a categorized color with no configured scale): log_warn(...),
+        color set to None instead of a scale reference. No build abort.
       - configured, but extract_categorized_items can't parse the actual
         color expression into items (extract_part_color's classifier and
         extract_categorized_items's parser can disagree on malformed
         expressions): log_warn(...), color set to None instead of a scale
         reference with null items — never write items: null into
-        scale_items/legend_sections (§5.6 requires items to be an array).
-        No build abort.
+        scale_items/legend_scales (items must be an array). No build abort.
 
     Args:
-        group_layers (list): MapLibre layer objects belonging to one group,
-            in style order
+        group_layers (list): MapLibre layer objects, in the order Parts
+            should appear
         group_key (str): key into GROUP_LEGEND_SCALE
         scale_items (dict): scale_id -> [{"label", "color"}, ...], mutated
-            in place; shared across all groups so cross-group scale sharing
-            and within-group multi-Part scale sharing use the same
-            first-seen/warn-on-drift logic
+            in place; shared across every _build_render call in one
+            build_layer_list run so cross-heading/cross-row scale sharing
+            uses the same first-seen/warn-on-drift logic
 
     Returns:
-        list[dict]: Part dicts per §5.3
+        list[dict]: Part dicts
     """
     parts = []
     for layer in group_layers:
@@ -492,78 +417,81 @@ def _build_render(group_layers, group_key, scale_items):
     return parts
 
 
-def _build_render_and_variants(group_layers, group_key, scale_items):
+def _build_legend_row(row_def, layers_by_id, scale_items):
     """
-    Split a group's layers into a shared render list and, for groups
-    configured in GROUP_VARIANTS, a list of filter-based variants grouped by
-    axis (design docs 2026-08-14 legend-variants, 2026-08-16 axis
-    retaxonomy; geodata-plugin-standard#4, part of the standard as of
-    v2.1.0).
+    Build one legend[].rows[] entry: {"label", "render", "style_layer_ids"}.
 
     Args:
-        group_layers (list): MapLibre layer objects belonging to one group,
-            in style order
-        group_key (str): key into GROUP_VARIANTS
-        scale_items (dict): passed through to _build_render unchanged — see
-            its docstring; the same dict is used for every _build_render
-            call below so cross-group AND cross-variant scale sharing keep
-            using the same first-seen/warn-on-drift logic
+        row_def (dict): one entry from a LEGEND_HEADINGS[heading] list —
+            {"label": str, "style_layer_ids": [str, ...], "render": [...]?}
+        layers_by_id (dict): style layer id -> MapLibre layer object,
+            spanning the WHOLE style (not scoped to one group) since a
+            row's style_layer_ids may reference layers from different
+            groups
+        scale_items (dict): passed through to _build_render unchanged
 
     Returns:
-        tuple[list[dict], list[dict] | None]: (render, variants). variants
-            is None when group_key has no GROUP_VARIANTS entry (render is
-            then the complete Part list, unchanged from pre-variants
-            behavior). Otherwise render holds only the Parts whose style
-            layer is not a member of any variant, and each variants[] entry
-            is {"axis": str, "label": str, "render": list[dict]}.
+        dict: {"label": str, "render": list[dict], "style_layer_ids": list[str]}
 
-    A variant_def's Part list is derived from the real style layer(s) named
-    in "style_layer_ids" via _build_render UNLESS the variant_def already
-    carries an explicit "render" key (a literal list[dict] of Parts) — then
-    that literal list is used as-is instead. "style_layer_ids" still
-    controls which layers get excluded from the shared render list either
-    way. The literal form exists for grooming-state rows
-    (GROUP_VARIANTS["ski-runs-downhill"/"ski-runs-nordic"], 2026-08-16
-    second follow-up): several rows point at the SAME style layer, only
-    differing in one field (dasharray) that the extractor can't read out of
-    that layer's line-dasharray case-expression at all
-    (extract_part_dasharray only handles a literal 2-element array, see its
-    docstring) — deriving would need per-field override plumbing across
-    multiple variants sharing one style_layer_id, which was deliberately
-    rejected in favor of self-contained, hand-authored Parts (simpler to
-    read, no cross-variant coupling). See the comment above GROUP_VARIANTS.
+    Raises:
+        AssertionError: row_def has no "render" override and its
+            style_layer_ids span more than one GROUP_MAP group — such a row
+            must be hand-authored, since _build_render needs exactly one
+            group_key for categorized-color/scale resolution.
     """
-    variant_defs = GROUP_VARIANTS.get(group_key)
-    if not variant_defs:
-        return _build_render(group_layers, group_key, scale_items), None
+    if "render" in row_def:
+        render = row_def["render"]
+    else:
+        group_keys = {GROUP_MAP[layer_id] for layer_id in row_def["style_layer_ids"]}
+        assert len(group_keys) == 1, (
+            f"legend row '{row_def['label']}': style_layer_ids span multiple groups "
+            f"({sorted(group_keys)}) but has no hand-authored 'render' — "
+            f"_build_render needs exactly one group_key for scale resolution"
+        )
+        layers = [layers_by_id[layer_id] for layer_id in row_def["style_layer_ids"]]
+        render = _build_render(layers, group_keys.pop(), scale_items)
 
-    variant_member_ids = set()
-    for variant_def in variant_defs:
-        variant_member_ids.update(variant_def["style_layer_ids"])
+    return {
+        "label": row_def["label"],
+        "render": render,
+        "style_layer_ids": row_def["style_layer_ids"],
+    }
 
-    shared_layers = [layer for layer in group_layers if layer.get("id") not in variant_member_ids]
-    render = _build_render(shared_layers, group_key, scale_items)
 
-    variants = [
+def _build_legend(layers_by_id, scale_items):
+    """
+    Build the top-level legend list (docs/superpowers/specs/
+    2026-08-16-legend-layer-split-design.md, Baustein 3):
+    [{"heading": str, "rows": [...]}, ...], one entry per LEGEND_HEADINGS key
+    in insertion order.
+
+    Args:
+        layers_by_id (dict): style layer id -> MapLibre layer object, the
+            whole style
+        scale_items (dict): passed through to _build_legend_row unchanged
+
+    Returns:
+        list[dict] | None: None if LEGEND_HEADINGS is empty (not the case
+            in this repo today, but kept for schema genericity — "legend"
+            is Array | null per the design doc, same convention as the
+            old "variants" field)
+    """
+    if not LEGEND_HEADINGS:
+        return None
+
+    return [
         {
-            "axis": variant_def["axis"],
-            "label": variant_def["label"],
-            "render": variant_def["render"] if "render" in variant_def else _build_render(
-                [layer for layer in group_layers if layer.get("id") in variant_def["style_layer_ids"]],
-                group_key,
-                scale_items,
-            ),
+            "heading": heading,
+            "rows": [_build_legend_row(row_def, layers_by_id, scale_items) for row_def in row_defs],
         }
-        for variant_def in variant_defs
+        for heading, row_defs in LEGEND_HEADINGS.items()
     ]
 
-    return render, variants
 
-
-def _build_legend_sections(scale_items):
+def _build_legend_scales(scale_items):
     """
-    Turn the scale_id -> items map collected by _build_render into the
-    top-level legend_sections list (GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.6).
+    Turn the scale_id -> items map collected by _build_render (via
+    _build_legend_row) into the top-level legend_scales list.
 
     Args:
         scale_items (dict): scale_id -> [{"label", "color"}, ...]
@@ -592,19 +520,20 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
         pmtiles_path (str): path relative to dist/pmtiles/, e.g. "openskimap.pmtiles"
 
     Returns:
-        dict: {"version": "2.1", "styles": [...], "legend_sections": [...] | None}
-            per GEODATA_PLUGIN_STANDARD.md v2.1.0 §5. Each group's `variants[]`
-            entries carry an `axis` field per the standard's §5.3 model;
-            `axis` naming/grouping is a reference-implementation judgment
-            call the standard explicitly leaves open. `source_layers`
-            (plural) remains a locally-proposed extension, not part of the
-            standard.
+        dict: {"version": "3.0", "styles": [...], "legend": [...] | None,
+            "legend_scales": [...] | None} per docs/superpowers/specs/
+            2026-08-16-legend-layer-split-design.md. `styles[].groups[]`
+            carries no `render`/`variants` — pure toggle/rendering
+            metadata (`source_layer(s)`, `name`, `template`,
+            `original_file`, `style_layers`). All Part-level rendering
+            and legend clustering lives in the separate `legend[]` array,
+            built from LEGEND_HEADINGS independently of `groups[]`.
 
     Raises:
         KeyError: a style layer's id is not in GROUP_MAP (see module docstring)
     """
     groups_dict = {}
-    group_layers = {}
+    layers_by_id = {}
 
     for layer in style_data.get("layers", []):
         layer_id = layer.get("id")
@@ -628,24 +557,19 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
                 "original_file": SOURCE_GPKG_REL_PATH,
                 "style_layers": [],
             }
-            group_layers[group_key] = []
 
         group = groups_dict[group_key]
         if source_layer not in group["source_layers"]:
             group["source_layers"].append(source_layer)
         group["style_layers"].append(layer_id)
-        group_layers[group_key].append(layer)
+        layers_by_id[layer_id] = layer
 
     scale_items = {}
-    for group_key, group in groups_dict.items():
-        render, variants = _build_render_and_variants(group_layers[group_key], group_key, scale_items)
-        group["render"] = render
-        group["variants"] = variants
-
-    legend_sections = _build_legend_sections(scale_items)
+    legend = _build_legend(layers_by_id, scale_items)
+    legend_scales = _build_legend_scales(scale_items)
 
     return {
-        "version": "2.1",
+        "version": "3.0",
         "styles": [
             {
                 "style_id": style_id,
@@ -654,7 +578,8 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
                 "groups": list(groups_dict.values()),
             }
         ],
-        "legend_sections": legend_sections,
+        "legend": legend,
+        "legend_scales": legend_scales,
     }
 
 
@@ -687,3 +612,4 @@ if __name__ == "__main__":
     )
     print(f"✅ Generated layer-list.json under: {out_path}")
     print(f"   - {len(layer_list['styles'][0]['groups'])} groups documented")
+    print(f"   - {len(layer_list['legend'] or [])} legend headings documented")
