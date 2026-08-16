@@ -322,7 +322,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         )
         self.assertEqual(
             [i["label"] for i in sections_by_id["ski-lift-status-v1"]["items"]],
-            ["Operating", "Proposed", "Planned", "Construction", "Disused", "Abandoned", "Sonstige"],
+            ["Operating", "Proposed", "Construction", "Disused", "Abandoned", "Sonstige"],
         )
 
     def test_ski_runs_nordic_has_grooming_variant_rows(self):
