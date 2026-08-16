@@ -2164,6 +2164,127 @@
         "icon-size": 0.7,
         "icon-allow-overlap": false,
         "icon-ignore-placement": true
+      },
+      "filter": [
+        "!=",
+        [
+          "get",
+          "lift_type"
+        ],
+        "mixed_lift"
+      ]
+    },
+    {
+      "id": "ski-lifts-icons-mixed-gondola",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "ski_lifts",
+      "minzoom": 13,
+      "filter": [
+        "==",
+        [
+          "get",
+          "lift_type"
+        ],
+        "mixed_lift"
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": 150,
+        "icon-rotation-alignment": "viewport",
+        "icon-image": "ski-gondola",
+        "icon-offset": [
+          0,
+          -8
+        ],
+        "icon-size": 0.7,
+        "icon-allow-overlap": false,
+        "icon-ignore-placement": true
+      }
+    },
+    {
+      "id": "ski-lifts-icons-mixed-chair",
+      "type": "symbol",
+      "source": "ski_source",
+      "source-layer": "ski_lifts",
+      "minzoom": 13,
+      "filter": [
+        "==",
+        [
+          "get",
+          "lift_type"
+        ],
+        "mixed_lift"
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": 150,
+        "icon-rotation-alignment": "viewport",
+        "icon-image": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            1
+          ],
+          "ski-chairlift-1",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            2
+          ],
+          "ski-chairlift-2",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            3
+          ],
+          "ski-chairlift-3",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            4
+          ],
+          "ski-chairlift-4",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            6
+          ],
+          "ski-chairlift-6",
+          [
+            "==",
+            [
+              "get",
+              "occupancy"
+            ],
+            8
+          ],
+          "ski-chairlift-8",
+          "ski-chairlift-2"
+        ],
+        "icon-offset": [
+          0,
+          8
+        ],
+        "icon-size": 0.7,
+        "icon-allow-overlap": false,
+        "icon-ignore-placement": true
       }
     }
   ],

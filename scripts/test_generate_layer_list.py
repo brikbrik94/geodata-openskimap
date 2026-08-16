@@ -480,7 +480,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
                     {"mode": "fixed", "value": freeride_color},
                 )
 
-    def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
+    def test_ski_lifts_retaxonomized_into_status_access_and_lift_type_axes(self):
         lifts = self.groups_by_key["ski-lifts"]
         self.assertEqual(
             [(v["axis"], v["label"]) for v in lifts["variants"]],
@@ -489,6 +489,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
                 ("status", "Geplant / Im Bau"),
                 ("status", "Außer Betrieb"),
                 ("access", "Privat"),
+                ("lift_type", "Kombibahn (Gondel + Sessellift)"),
             ],
         )
         outline_part = {
@@ -521,6 +522,16 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
             "radius": None, "stroke_width": None, "icon": None,
         }
+        mixed_gondola_part = {
+            "kind": "icon", "color": None, "stroke_color": None, "opacity": 1,
+            "width": None, "dasharray": None, "radius": None, "stroke_width": None,
+            "icon": "ski-gondola",
+        }
+        mixed_chair_part = {
+            "kind": "icon", "color": None, "stroke_color": None, "opacity": 1,
+            "width": None, "dasharray": None, "radius": None, "stroke_width": None,
+            "icon": None,  # icon-image is a case expression, not literal
+        }
 
         # axis "status": casing appears exactly once (only under "In
         # Betrieb"), never duplicated into "access" — regression guard for
@@ -529,6 +540,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(lifts["variants"][1]["render"], [line_planned])
         self.assertEqual(lifts["variants"][2]["render"], [line_disused])
         self.assertEqual(lifts["variants"][3]["render"], [line_operating_private, line_other_private])
+        self.assertEqual(lifts["variants"][4]["render"], [mixed_gondola_part, mixed_chair_part])
 
         shared_kinds = sorted(p["kind"] for p in lifts["render"])
         self.assertEqual(shared_kinds, ["icon", "text"])
@@ -576,7 +588,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
 
         lifts = self.groups_by_key["ski-lifts"]
         self.assertEqual(total_part_count(lifts), len(lifts["style_layers"]))
-        self.assertEqual(len(lifts["style_layers"]), 8)
+        self.assertEqual(len(lifts["style_layers"]), 10)
 
         nordic = self.groups_by_key["ski-runs-nordic"]
         self.assertEqual(len(nordic["style_layers"]), 4)

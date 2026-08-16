@@ -99,6 +99,8 @@ GROUP_MAP = {
     "ski-lifts-line-private-other": "ski-lifts",
     "ski-lifts-labels": "ski-lifts",
     "ski-lifts-icons": "ski-lifts",
+    "ski-lifts-icons-mixed-gondola": "ski-lifts",
+    "ski-lifts-icons-mixed-chair": "ski-lifts",
 }
 
 # group key -> German display name shown in downstream legend UIs. Every key
@@ -159,12 +161,12 @@ LEGEND_SCALE_LABELS = {
 # §5.3 requires that a style layer land in `render` or in EXACTLY ONE
 # `variants[]` entry, never in both and never in more than one entry — the
 # standard does NOT permit cross-entry duplication. ski-lifts is fully
-# conformant (each of its 6 variant-bearing style layers appears in exactly
+# conformant (each of its 8 variant-bearing style layers appears in exactly
 # one axis entry — see the design doc's paint-coupling investigation for how
 # it was split into orthogonal "status"/"access" axes without duplication;
 # 2026-08-16 lift-status-icon-cleanup follow-up split "status" into three
-# tiers instead of two, see docs/superpowers/specs/
-# 2026-08-16-lift-status-icon-cleanup-design.md).
+# tiers instead of two and added a "lift_type" axis for the mixed_lift icon
+# pair, see docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md).
 #
 # ski-runs-downhill/ski-runs-nordic had a grooming-terrain/snowmaking
 # variants[] split here previously (v2.1.0 migration, 2026-08-14), built
@@ -335,6 +337,14 @@ GROUP_VARIANTS = {
         # is status!=operating, i.e. they are themselves status-exclusive.
         {"axis": "access", "label": "Privat",
          "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
+        # mixed_lift (OpenSkiMap's own hybrid gondola/chair-lift concept, no
+        # further sub-typing available in the data) renders as two offset
+        # icons on the same line instead of a single misleading icon — see
+        # design doc Baustein 5. Not a step toward "lift_type as legend
+        # rows" in general (explicitly deferred, see docs/TODO.md); this is
+        # the one case that needed its own style layers regardless.
+        {"axis": "lift_type", "label": "Kombibahn (Gondel + Sessellift)",
+         "style_layer_ids": ["ski-lifts-icons-mixed-gondola", "ski-lifts-icons-mixed-chair"]},
     ],
 }
 
