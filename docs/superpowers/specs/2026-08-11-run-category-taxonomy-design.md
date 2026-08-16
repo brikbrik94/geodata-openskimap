@@ -4,8 +4,10 @@
 > genau eine Kategorie nach fester Priorität, keine Duplizierung wie bei Ski-Gebieten" gilt für
 > Pisten/Loipen nicht mehr — siehe
 > `docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`
-> (Baustein 1). Der Rest dieses Dokuments (Kategorien-Zuordnung selbst, Nordic-Einfärbung) bleibt
-> unverändert gültig.
+> (Baustein 1). Ebenfalls abgelöst: Entscheidung 1 unten ("Kein `line-offset` bei
+> Mehrfachnutzung") — ihre Begründung setzt die jetzt aufgegebene Ein-Kategorie-Zuordnung voraus
+> und trifft auf das neue Duplizierungs-Modell nicht mehr zu, siehe `docs/ROADMAP.md`. Der Rest
+> dieses Dokuments (Kategorien-Zuordnung selbst, Nordic-Einfärbung) bleibt unverändert gültig.
 
 ## Problem
 

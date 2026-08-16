@@ -15,15 +15,25 @@ das zusätzlich als `line-offset`-Multiplikator dient (siehe
 `downhill-runs-casing` im Session-Snapshot `/tmp/openskimap_terrain_style.json`:
 `"line-offset": ["interpolate", ..., ["*", 0.5, ["get", "downhill"]], ...]`).
 
-Wir haben stattdessen (Entscheidung in
-`docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md`) ein
-einfacheres Modell: jedes Feature bekommt genau eine Kategorie nach fester
-Priorität (`downhill > nordic > skitour > other`), keine parallelen
-Linien. Grund: unser GeoPackage hat kein vorberechnetes Offset-Index-Feld,
-das selbst zu berechnen wäre deutlich komplexer als die aktuelle
-Prioritäts-Zuordnung (u. a. müsste für jede Kombination aus mehreren
-zutreffenden Kategorien ein stabiler Index ermittelt werden, der bei
-paralleler Nutzung mehrerer benachbarter Pisten nicht überlappt).
+Ursprünglich (Entscheidung in
+`docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md`) galt
+stattdessen ein einfacheres Modell: jedes Feature bekam genau eine
+Kategorie nach fester Priorität (`downhill > nordic > skitour > other`),
+keine parallelen Linien. Unter diesem Modell konnte ein Feature nie
+gleichzeitig in zwei Kategorie-Layern auftauchen — `line-offset` wäre also
+nur ein hypothetisches Nice-to-have für einen Fall gewesen, der so gar
+nicht vorkommen konnte.
+
+Seit `docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`
+(Baustein 1) gilt das nicht mehr: Pisten/Loipen mit mehreren zutreffenden
+`uses`-Werten werden jetzt (analog zu Ski-Gebieten) in **jede** zutreffende
+Kategorie dupliziert (identische Geometrie), statt einer festen Priorität
+zu folgen. Damit entstehen an echten Mehrfachnutzungs-Stellen (z. B.
+`uses="downhill,skitour"`) tatsächlich zwei sich deckende Linien in
+unterschiedlichen Kategorie-Layern, von denen aktuell nur die obenliegende
+sichtbar ist. `line-offset` ist damit kein hypothetisches Feature mehr,
+sondern der naheliegende nächste Schritt, um diese echten Duplikate sauber
+parallel versetzt statt deckungsgleich übereinander darzustellen.
 
 Für eine spätere Umsetzung: `scripts/convert.sh` müsste die Feature-Zahl
 pro Kategorie in ein eigenes numerisches Property schreiben (z. B. per

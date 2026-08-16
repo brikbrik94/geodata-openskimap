@@ -22,12 +22,20 @@ investigated this session and pass through unchanged (see design doc,
 "Explizit zurückgestellt").
 """
 import json
+import os
 import sys
 
 GROOMING_ALLOWLIST = {
     "downhill": {"mogul", "backcountry"},
     "nordic": {"classic", "classic+skating", "skating", "scooter", "backcountry"},
 }
+
+# The four real run categories produced by scripts/convert.sh. Not the same
+# set as GROOMING_ALLOWLIST.keys() - "skitour"/"other" are valid categories
+# that intentionally have no allowlist entry (normalize_grooming passes them
+# through unchanged), so validating against GROOMING_ALLOWLIST would wrongly
+# reject them.
+VALID_CATEGORIES = {"downhill", "nordic", "skitour", "other"}
 
 
 def normalize_grooming(properties, category):
@@ -57,6 +65,10 @@ def normalize_file(path, category):
     line (ogr2ogr's GeoJSONSeq output in this pipeline has no RS/0x1e
     separator - verified against real output).
 
+    Writes to a temp file in the same directory and atomically renames it
+    over `path` (os.replace) rather than reopening `path` directly, so an
+    interruption mid-write can't leave a truncated file in place.
+
     Args:
         path (str): path to a .jsonseq file, rewritten in place
         category (str): passed through to normalize_grooming
@@ -64,18 +76,26 @@ def normalize_file(path, category):
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
 
-    with open(path, "w", encoding="utf-8") as f:
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         for line in lines:
             line = line.strip()
             if not line:
                 continue
             feature = json.loads(line)
-            feature["properties"] = normalize_grooming(feature.get("properties", {}), category)
+            feature["properties"] = normalize_grooming(feature.get("properties") or {}, category)
             f.write(json.dumps(feature, ensure_ascii=False) + "\n")
+    os.replace(tmp_path, path)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: normalize_run_tags.py <path.jsonseq> <category>", file=sys.stderr)
+        sys.exit(1)
+    if sys.argv[2] not in VALID_CATEGORIES:
+        print(
+            f"Error: unknown category {sys.argv[2]!r}, expected one of {sorted(VALID_CATEGORIES)}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     normalize_file(sys.argv[1], sys.argv[2])

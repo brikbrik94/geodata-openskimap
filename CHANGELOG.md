@@ -26,6 +26,14 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `scripts/convert.sh` löscht die `.jsonseq`-Zwischendateien am Ende nicht mehr (`work/` ist
   bereits vollständig gitignored) — Voraussetzung für `analyze_legend_categories.py`.
 
+### Fixed
+- **Korrektur (finales Branch-Review, 2026-08-16):** die im Design-Dokument als generelle
+  "~0,1 %"-Überlappung angegebene Zahl galt nur für Downhill∩Nordic (17 Features). Gegen die
+  echten `work/*.jsonseq`-Ausgaben gemessen: Downhill∩Skitour teilen sich tatsächlich 180
+  Features (~10,8 % von Skitours ~1.673 Features, **nicht** selten), Nordic∩Skitour 29 Features,
+  Paare mit "other" 0. Betrifft nur die Dokumentation/Zahlen (Design-Spec, Baustein 1) — der
+  akzeptierte Duplizierungs-Ansatz und der Code bleiben unverändert.
+
 ## [Unreleased] - 2026-08-16 08:21
 
 ### Changed

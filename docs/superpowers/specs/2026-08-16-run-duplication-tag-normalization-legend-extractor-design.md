@@ -51,10 +51,32 @@ Feature"-Entscheidung aus `docs/superpowers/specs/2026-08-11-run-category-taxono
 für Pisten/Loipen — jene Spec bleibt als Historie bestehen, wird aber durch dieses Dokument
 inhaltlich abgelöst.
 
-**Rendering-Konsequenz (akzeptiert):** an den ~0,1 % Überlappungsstellen zeigt eine gleichzeitig
-sichtbare Downhill+Nordic-Ansicht nur die obere Linie (kein `line-offset`, beide Layer
-`opacity: 1`). Bei isolierter Ansicht einer Kategorie (z. B. "nur Loipen") ist das Feature dort
-korrekt vorhanden. Trade-off bewusst akzeptiert angesichts der Seltenheit echter Überlappung.
+**Rendering-Konsequenz (akzeptiert):** die tatsächliche Überlappung zwischen den vier
+Kategorie-Layern wurde nachträglich (finales Branch-Review, 2026-08-16) gegen die echten
+gebauten `work/*.jsonseq`-Ausgaben gemessen, statt eine einzelne "~0,1 %"-Zahl pauschal auf alle
+Kategorie-Paare zu übertragen — die ~0,1 % wurden ursprünglich nur für das Paar Downhill∩Nordic
+ermittelt (17 von 10.890 Downhill-Features, siehe Problem-Abschnitt Punkt 2) und gelten nicht
+generell:
+
+- Downhill∩Nordic: 17 gemeinsame Features (~0,1 % von Downhills ~10.890 Features) — tatsächlich
+  selten, wie ursprünglich angenommen.
+- Downhill∩Skitour: 180 gemeinsame Features (~10,8 % von Skitours ~1.673 Features) — **nicht**
+  selten.
+- Nordic∩Skitour: 29 gemeinsame Features.
+- Jedes Paar mit "other": 0 gemeinsame Features (erwartbar, `OTHER_RUN_WHERE` ist exklusiv).
+
+An diesen Überlappungsstellen zeigt eine gleichzeitig sichtbare Mehrfach-Kategorie-Ansicht nur
+die obere Linie (kein `line-offset`, alle Layer `opacity: 1`). Welche Kategorie "oben" liegt,
+bestimmt die Layer-Reihenfolge in `styles/openskimap-style.json`s `layers`-Array: `ski-runs-
+skitour-line` steht dort an Index 16, nach allen Downhill-Layern (`ski-runs-downhill-fill` Index
+4, `-casing` Index 6, `-line` Index 8, `-gladed` Index 9, `-ungroomed` Index 10, `-snowmaking`
+Index 11) — spätere Array-Einträge werden in MapLibre zuletzt/obenauf gezeichnet, d. h. die 180
+Downhill∩Skitour-Duplikate erscheinen standardmäßig in Skitour-Optik statt in Downhill-Optik. Bei
+isolierter Ansicht einer Kategorie (z. B. "nur Loipen" oder "nur Skitour") ist das jeweilige
+Feature dort weiterhin korrekt vorhanden. Trade-off bewusst akzeptiert für Downhill∩Nordic
+angesichts echter Seltenheit; für Downhill∩Skitour ist das Überlappungsvolumen deutlich höher als
+die ursprünglich angenommene Seltenheit — Code/Duplizierungs-Ansatz bleiben unverändert, siehe
+CHANGELOG für die Korrektur der Zahlen.
 
 ### Baustein 2 — Tag-Normalisierung pro Kategorie
 

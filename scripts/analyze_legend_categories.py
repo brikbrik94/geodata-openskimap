@@ -14,16 +14,9 @@ Usage: python3 scripts/analyze_legend_categories.py [work_dir]
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 GROUPS = {
-    "ski_areas_alpine": {
-        "files": ["ski_areas_alpine_point.jsonseq", "ski_areas_alpine_poly.jsonseq"],
-        "properties": [],
-    },
-    "ski_areas_nordic": {
-        "files": ["ski_areas_nordic_point.jsonseq", "ski_areas_nordic_poly.jsonseq"],
-        "properties": [],
-    },
     "ski_runs_downhill": {
         "files": ["ski_runs_downhill_line.jsonseq", "ski_runs_downhill_poly.jsonseq"],
         "properties": ["difficulty", "grooming"],
@@ -65,7 +58,7 @@ def read_jsonseq_properties(path):
             line = line.strip()
             if not line:
                 continue
-            yield json.loads(line).get("properties", {})
+            yield json.loads(line).get("properties") or {}
 
 
 def print_report(work_dir):
@@ -73,14 +66,27 @@ def print_report(work_dir):
         if not cfg["properties"]:
             continue
         properties_list = []
+        found_count = 0
+        mtimes = []
         for filename in cfg["files"]:
             path = os.path.join(work_dir, filename)
             if not os.path.exists(path):
                 print(f"(skipping {group}: {filename} not found in {work_dir})", file=sys.stderr)
                 continue
+            found_count += 1
+            mtimes.append(os.path.getmtime(path))
             properties_list.extend(read_jsonseq_properties(path))
 
-        print(f"=== {group} ({len(properties_list)} features) ===")
+        total_count = len(cfg["files"])
+        suffix = f", INCOMPLETE: {found_count}/{total_count} files found" if found_count < total_count else ""
+        print(f"=== {group} ({len(properties_list)} features{suffix}) ===")
+        if mtimes:
+            oldest = datetime.fromtimestamp(min(mtimes), tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            newest = datetime.fromtimestamp(max(mtimes), tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            if oldest == newest:
+                print(f"(source files last modified: {newest})")
+            else:
+                print(f"(source files last modified: {oldest} to {newest})")
         for prop in cfg["properties"]:
             print(f"-- {prop} --")
             for value, count in count_values(properties_list, prop):

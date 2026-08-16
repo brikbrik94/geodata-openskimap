@@ -39,9 +39,9 @@ There is no linter or package manager in this repo (no
 `generate_manifest.py` use only the Python standard library. There is a
 stdlib-`unittest`-based test suite (`scripts/test_*.py`) — run it with
 `cd scripts && python3 -m unittest test_validate_style
-test_layer_metadata_extractor test_generate_layer_list -v` before
-committing changes to the style, the extractor, or the layer-list
-generator.
+test_layer_metadata_extractor test_generate_layer_list test_normalize_run_tags
+test_analyze_legend_categories -v` before committing changes to the style,
+the extractor, or the layer-list generator.
 
 To run/debug a single stage instead of the full `run.sh`:
 
@@ -81,7 +81,10 @@ Three entry points per the plugin standard's "Dreifaltigkeit" (§1):
      - `tippecanoe` builds `work/openskimap.pmtiles` from those layers with
        `-L <name>:<file>` (preserves exact layer names), zoom 0–14,
        `--drop-densest-as-needed --extend-zooms-if-still-dropping`.
-     - Intermediate `.jsonseq` files are deleted after the tippecanoe run.
+     - Intermediate `.jsonseq` files are now retained in `work/` after the
+       build (no longer deleted) so `scripts/analyze_legend_categories.py`
+       (a standalone manual dev tool, not part of the pipeline) can read
+       them.
   4. **Finalize** — `scripts/generate_manifest.py` copies `work/openskimap.pmtiles`,
      `styles/openskimap-style.json`, and `assets/sprites/openskimap/*` into the
      matching `dist/` subfolders, writes `dist/manifest.json` (schema below),
