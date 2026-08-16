@@ -73,6 +73,12 @@ ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 # Normalisierung (normalize_run_tags.py, siehe unten) - Other nicht (siehe
 # design doc "Explizit zurueckgestellt"; Skitour kam am 2026-08-16 dazu,
 # nach manueller Pruefung aller betroffenen OSM-Ways gegen die Live-Daten).
+# ALLE vier Kategorien (auch Other) laufen zusaetzlich durch dieselbe
+# normalize_run_tags.py fuer die difficulty-Remappierung (expert->advanced,
+# extreme->freeride) - kategorie-unabhaengig, da difficulty ueberall
+# gleich bedeutet. Other bekommt dafuer jetzt ebenfalls den Skript-Aufruf,
+# obwohl sein grooming-Wert dabei unveraendert bleibt (kein Allowlist-
+# Eintrag fuer "other").
 DOWNHILL_RUN_WHERE="uses LIKE '%downhill%' AND $COUNTRY_WHERE"
 NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND $COUNTRY_WHERE"
 SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND $COUNTRY_WHERE"
@@ -80,7 +86,7 @@ OTHER_RUN_WHERE="(uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE 
 
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
-log_info "Normalisiere grooming-Tags (downhill/nordic/skitour)..."
+log_info "Normalisiere grooming-Tags (downhill/nordic/skitour) und difficulty-Remap (alle vier Kategorien)..."
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_line.jsonseq downhill
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_poly.jsonseq downhill
 
@@ -96,6 +102,8 @@ python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_skitour_poly.jsonseq skitou
 
 ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_other_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$OTHER_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_other_line.jsonseq other
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_other_poly.jsonseq other
 
 # Lifte: ein Layer, keine Kategorie-Aufteilung noetig
 ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring -where "$COUNTRY_WHERE"

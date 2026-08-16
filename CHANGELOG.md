@@ -5,7 +5,23 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-16 12:28
+## [Unreleased] - 2026-08-16 12:58
+
+### Added
+- `scripts/normalize_run_tags.py`: neue, kategorie-unabhängige `difficulty`-Remappierung
+  (`DIFFICULTY_REMAP`, `normalize_difficulty()`) — `expert` → `advanced`, `extreme` → `freeride`,
+  angewandt auf **alle vier** Pisten-Kategorien (auch `other`, das dafür jetzt ebenfalls durch
+  `normalize_run_tags.py` läuft, `grooming` bleibt dort aber weiterhin unverändert). Grund: die
+  Style-Match-Expression für `difficulty` färbt `advanced`/`expert` bereits identisch (Schwarz)
+  und `freeride`/`extreme` bereits identisch (Orange) — der 7-stufige Rohwert rendert schon heute
+  nur als 5 Farben, die Legende hinkt dem nur hinterher. Verifiziert gegen die echten Daten:
+  `ski_runs_downhill`'s `difficulty`-Verteilung hat jetzt `advanced: 1281` (= vorher 1211+70) und
+  `freeride: 334` (= vorher 327+7), kein `expert`/`extreme` mehr.
+- **Bewusst zurückgestellt (nächster Schritt):** Style (`styles/openskimap-style.json`, tote
+  `expert`/`extreme`-Zweige in vier Match-Expressions) und Legende (`ski-difficulty-v1` zeigt
+  noch 8 statt 5 Einträge) sind noch nicht angepasst — folgt als separater Schritt.
+
+
 
 ### Added
 - `scripts/normalize_run_tags.py`: `GROOMING_ALLOWLIST` um `"skitour": {"backcountry"}` erweitert.
