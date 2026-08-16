@@ -12,6 +12,8 @@ from layer_metadata_extractor import (
     extract_part_dasharray,
     extract_part_radius,
     extract_part_icon,
+    extract_part_stroke_color,
+    extract_part_stroke_width,
 )
 
 
@@ -245,6 +247,51 @@ class ExtractCategorizedItemsTests(unittest.TestCase):
             extract_categorized_items(layer, "outline"),
             [{"label": "Novice", "color": "hsl(125, 100%, 33%)"}, {"label": "Sonstige", "color": "hsl(0, 0%, 35%)"}],
         )
+
+
+class ExtractPartStrokeColorTests(unittest.TestCase):
+    def test_literal_color_on_circle_is_fixed(self):
+        layer = {"type": "circle", "paint": {"circle-stroke-color": "#ffffff"}}
+        self.assertEqual(extract_part_stroke_color(layer, "circle"), {"mode": "fixed", "value": "#ffffff"})
+
+    def test_kind_without_stroke_color_field_returns_none(self):
+        layer = {"type": "fill", "paint": {"fill-color": "#000"}}
+        self.assertIsNone(extract_part_stroke_color(layer, "fill"))
+
+    def test_missing_property_on_circle_returns_none(self):
+        layer = {"type": "circle", "paint": {"circle-color": "#000"}}
+        self.assertIsNone(extract_part_stroke_color(layer, "circle"))
+
+    def test_expression_value_returns_none(self):
+        # No style layer in this repo has a categorized circle-stroke-color,
+        # and there is no scale-wiring for it (see design doc) — treated the
+        # same as any other unsupported form, not as "categorized".
+        layer = {
+            "type": "circle",
+            "paint": {"circle-stroke-color": ["match", ["get", "x"], "a", "#111", "#222"]},
+        }
+        self.assertIsNone(extract_part_stroke_color(layer, "circle"))
+
+
+class ExtractPartStrokeWidthTests(unittest.TestCase):
+    def test_literal_number_on_circle(self):
+        layer = {"type": "circle", "paint": {"circle-stroke-width": 1}}
+        self.assertEqual(extract_part_stroke_width(layer, "circle"), 1)
+
+    def test_interpolate_returns_highest_zoom_stop(self):
+        layer = {
+            "type": "circle",
+            "paint": {"circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 6, 0.5, 14, 2.0]},
+        }
+        self.assertEqual(extract_part_stroke_width(layer, "circle"), 2.0)
+
+    def test_kind_without_stroke_width_field_returns_none(self):
+        layer = {"type": "line", "paint": {"line-width": 2}}
+        self.assertIsNone(extract_part_stroke_width(layer, "line"))
+
+    def test_missing_property_on_circle_returns_none(self):
+        layer = {"type": "circle", "paint": {"circle-color": "#000"}}
+        self.assertIsNone(extract_part_stroke_width(layer, "circle"))
 
 
 if __name__ == "__main__":

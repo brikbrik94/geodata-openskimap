@@ -3,8 +3,9 @@
 Metadata extractor for MapLibre style layers.
 
 Extracts, per style layer, the `Part` fields defined by
-GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.3 (kind, color, opacity, width,
-dasharray, radius, icon) to support automated legend rendering. One Part
+GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3 (kind, color, stroke_color, opacity,
+width, dasharray, radius, stroke_width, icon) to support automated legend
+rendering. One Part
 per style layer — no merging, no "primary layer" selection (§5.3: "Kein
 Merge mehrerer Style-Layer zu einem Part und keine Prioritäts-Auswahl
 eines 'Primär-Layers' mehr").
@@ -36,7 +37,7 @@ DIFFICULTY_CASE_PROPERTY = "difficulty_convention"
 DIFFICULTY_CASE_VALUE = "europe"
 
 # kind -> {field name -> MapLibre paint/layout property}, per
-# GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.3's kind table. A field absent from a
+# GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3's kind table. A field absent from a
 # kind's sub-dict is always null for that kind's Parts (e.g. "fill" has no
 # "width").
 PART_FIELDS_BY_KIND = {
@@ -51,14 +52,17 @@ PART_FIELDS_BY_KIND = {
     },
     "icon": {"color": "icon-color", "opacity": "icon-opacity", "icon": "icon-image"},
     "text": {"color": "text-color", "opacity": "text-opacity"},
-    "circle": {"color": "circle-color", "opacity": "circle-opacity", "radius": "circle-radius"},
+    "circle": {
+        "color": "circle-color", "opacity": "circle-opacity", "radius": "circle-radius",
+        "stroke_color": "circle-stroke-color", "stroke_width": "circle-stroke-width",
+    },
 }
 
 
 def determine_part_kind(layer):
     """
     Determine a style layer's Part `kind` per GEODATA_PLUGIN_STANDARD.md
-    v2.0.0 §5.3.
+    v2.1.0 §5.3.
 
     Args:
         layer (dict): A MapLibre style layer object
@@ -150,6 +154,37 @@ def extract_part_color(layer, kind):
     return None
 
 
+def extract_part_stroke_color(layer, kind):
+    """
+    Extract a Part's `stroke_color` field per GEODATA_PLUGIN_STANDARD.md
+    v2.1.0 §5.3: only kind:"circle" has a stroke_color field (from
+    circle-stroke-color); every other kind gets None.
+
+    Unlike extract_part_color, this does not classify interpolate/match
+    expressions as "categorized" — no style layer in this repo has a
+    categorized circle-stroke-color, and generate_layer_list.py's scale
+    resolution (GROUP_LEGEND_SCALE) only wires up `color`, not
+    `stroke_color`. A non-literal expression is treated like any other
+    unsupported form and returns None (same as extract_part_dasharray's
+    contract), not like extract_part_color's "categorized" marker.
+
+    Args:
+        layer (dict): A MapLibre style layer object
+        kind (str): One of PART_FIELDS_BY_KIND's keys
+
+    Returns:
+        dict | None: {"mode": "fixed", "value": str} for a literal color;
+            None if the kind has no stroke_color field, the property is
+            unset, or its value isn't a literal string.
+    """
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("stroke_color")
+    if prop is None:
+        return None
+
+    value = layer.get("paint", {}).get(prop)
+    return {"mode": "fixed", "value": value} if isinstance(value, str) else None
+
+
 def extract_categorized_items(layer, kind):
     """
     Extract legend items ({label, color} per category) for a Part whose
@@ -211,6 +246,16 @@ def extract_part_width(layer, kind):
     """Kind-specific line-width (PART_FIELDS_BY_KIND), see
     _extract_interpolatable_number. None if `kind` has no width field."""
     prop = PART_FIELDS_BY_KIND.get(kind, {}).get("width")
+    if prop is None:
+        return None
+    return _extract_interpolatable_number(layer.get("paint", {}).get(prop))
+
+
+def extract_part_stroke_width(layer, kind):
+    """Kind-specific circle-stroke-width (PART_FIELDS_BY_KIND), see
+    _extract_interpolatable_number. None if `kind` has no stroke_width field
+    (only "circle" does)."""
+    prop = PART_FIELDS_BY_KIND.get(kind, {}).get("stroke_width")
     if prop is None:
         return None
     return _extract_interpolatable_number(layer.get("paint", {}).get(prop))
