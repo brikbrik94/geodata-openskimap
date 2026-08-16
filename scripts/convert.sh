@@ -55,26 +55,38 @@ ogr2ogr -f GeoJSONSeq ski_areas_alpine_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$NORDIC_AREA_WHERE"
 ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$NORDIC_AREA_WHERE"
 
-# Pisten/Loipen: nach 'uses' in vier Kategorien aufgeteilt, mit fester
-# Prioritaet downhill > nordic > skitour > other (siehe
-# docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md).
-# Jedes Feature bekommt genau eine Kategorie - keine Mehrfachzuordnung wie
-# bei den Ski-Gebieten oben. Das echte OpenSkiMap-Stylesheet zeichnet bei
-# Mehrfachnutzung mehrere parallel versetzte Linien (line-offset); das ist
-# als Roadmap-Punkt zurueckgestellt, siehe docs/ROADMAP.md. Linien- und
-# Polygon-Geometrie bleiben getrennt, siehe Kommentar oben.
+# Pisten/Loipen: nach 'uses' in vier Kategorien aufgeteilt. Downhill/Nordic/
+# Skitour sind jetzt UNABHAENGIG/inklusiv wie bei den Ski-Gebieten oben -
+# ein Feature mit uses="nordic,downhill" landet in BEIDEN Layern (identische
+# Geometrie, dupliziert). Loest damit das Problem, dass eine "nur Loipen"-
+# Ansicht sonst Mischnutzungs-Segmente komplett verliert. Ersetzt die
+# vorherige feste Prioritaet downhill > nordic > skitour > other (siehe
+# docs/superpowers/specs/2026-08-11-run-category-taxonomy-design.md, jetzt
+# abgeloest durch docs/superpowers/specs/
+# 2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md).
+# OTHER_RUN_WHERE bleibt exklusiv - repraesentiert weiterhin "keine der drei
+# spezifischen uses trifft zu", unveraendert durch die Duplizierung oben.
 # OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL wertet
 # "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
 # Features ganz ohne uses-Wert aus allen vier Kategorien herausfallen.
+# Downhill/Nordic bekommen zusaetzlich eine grooming-Tag-Normalisierung
+# (normalize_run_tags.py, siehe unten) - Skitour/Other nicht, siehe
+# design doc "Explizit zurueckgestellt".
 DOWNHILL_RUN_WHERE="uses LIKE '%downhill%' AND $COUNTRY_WHERE"
-NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND uses NOT LIKE '%downhill%' AND $COUNTRY_WHERE"
-SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND $COUNTRY_WHERE"
+NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND $COUNTRY_WHERE"
+SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND $COUNTRY_WHERE"
 OTHER_RUN_WHERE="(uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%')) AND $COUNTRY_WHERE"
 
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_line.jsonseq downhill
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_poly.jsonseq downhill
+
 ogr2ogr -f GeoJSONSeq ski_runs_nordic_line.jsonseq "$INPUT_FILE" runs_linestring -where "$NORDIC_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_nordic_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$NORDIC_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_nordic_line.jsonseq nordic
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_nordic_poly.jsonseq nordic
+
 ogr2ogr -f GeoJSONSeq ski_runs_skitour_line.jsonseq "$INPUT_FILE" runs_linestring -where "$SKITOUR_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_skitour_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$SKITOUR_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
@@ -112,8 +124,5 @@ tippecanoe -o "$OUTPUT_PMTILES" --force \
   -L "ski_runs_other_poly:ski_runs_other_poly.jsonseq" \
   -L "ski_lifts:ski_lifts.jsonseq" \
   -L "ski_spots:ski_spots.jsonseq"
-
-log_info "Bereinige temporäre JSON-Dateien..."
-rm -f *.jsonseq
 
 log_success "OpenSkimap PMTiles erfolgreich erstellt."
