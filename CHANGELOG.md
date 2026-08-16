@@ -5,6 +5,19 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 18:45
+
+### Changed
+- `scripts/generate_layer_list.py`: `GROUP_VARIANTS["ski-lifts"]`s neue `"lift_type"`-Achse
+  (`Kombibahn (Gondel + Sessellift)`, eingeführt im vorigen Journal-Block) wieder entfernt —
+  Nutzer-Feedback: eine eigene Legend-Zeile nur für `mixed_lift` wäre inkonsistent, da die
+  anderen 11 `lift_type`-Werte ebenfalls keine eigene Zeile bekommen (generischer, ungelabelter
+  Icon-Part in `render`). Die beiden Style-Layer (`ski-lifts-icons-mixed-gondola`/`-mixed-chair`)
+  bleiben unverändert bestehen (Icon-Paar rendert weiterhin korrekt auf der Karte) und landen
+  jetzt stattdessen in der flachen `render`-Liste der Gruppe statt in einem Variant — weiterhin
+  §5.3-konform (jeder Style-Layer landet in `render` oder genau einem `variants[]`-Eintrag),
+  nur eben nicht mehr als eigene Legend-Zeile sichtbar.
+
 ## [Unreleased] - 2026-08-16 18:39
 
 ### Removed

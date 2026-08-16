@@ -239,15 +239,20 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
 
     def test_ski_lifts_render_parts(self):
         lifts = self.groups_by_key["ski-lifts"]
-        # With variants, only shared layers (text, icon) are in render.
-        # Outline and line layers are in variants.
+        # With variants, casing/status/access layers are in variants; text
+        # and all icon layers (including the mixed_lift pair, deliberately
+        # NOT a variant — see comment above GROUP_VARIANTS) stay in the flat
+        # shared render.
         kinds = [p["kind"] for p in lifts["render"]]
-        self.assertEqual(kinds, ["text", "icon"])
+        self.assertEqual(kinds, ["text", "icon", "icon", "icon"])
 
-        icon_part = lifts["render"][-1]
-        self.assertEqual(icon_part["kind"], "icon")
-        self.assertIsNone(icon_part["color"])
-        self.assertIsNone(icon_part["icon"])  # icon-image is a match expression, not literal
+        generic_icon_part, mixed_gondola_part, mixed_chair_part = lifts["render"][1:]
+        self.assertIsNone(generic_icon_part["color"])
+        self.assertIsNone(generic_icon_part["icon"])  # icon-image is a match expression, not literal
+        self.assertIsNone(mixed_gondola_part["color"])
+        self.assertEqual(mixed_gondola_part["icon"], "ski-gondola")  # icon-image is a literal string
+        self.assertIsNone(mixed_chair_part["color"])
+        self.assertIsNone(mixed_chair_part["icon"])  # icon-image is a case expression, not literal
 
     def test_ski_runs_downhill_casing_is_fixed_not_scale(self):
         # -downhill-line/-connection-line are variant-only now (grooming
@@ -480,7 +485,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
                     {"mode": "fixed", "value": freeride_color},
                 )
 
-    def test_ski_lifts_retaxonomized_into_status_access_and_lift_type_axes(self):
+    def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
         lifts = self.groups_by_key["ski-lifts"]
         self.assertEqual(
             [(v["axis"], v["label"]) for v in lifts["variants"]],
@@ -489,7 +494,6 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
                 ("status", "Geplant / Im Bau"),
                 ("status", "Außer Betrieb"),
                 ("access", "Privat"),
-                ("lift_type", "Kombibahn (Gondel + Sessellift)"),
             ],
         )
         outline_part = {
@@ -522,16 +526,6 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
             "radius": None, "stroke_width": None, "icon": None,
         }
-        mixed_gondola_part = {
-            "kind": "icon", "color": None, "stroke_color": None, "opacity": 1,
-            "width": None, "dasharray": None, "radius": None, "stroke_width": None,
-            "icon": "ski-gondola",
-        }
-        mixed_chair_part = {
-            "kind": "icon", "color": None, "stroke_color": None, "opacity": 1,
-            "width": None, "dasharray": None, "radius": None, "stroke_width": None,
-            "icon": None,  # icon-image is a case expression, not literal
-        }
 
         # axis "status": casing appears exactly once (only under "In
         # Betrieb"), never duplicated into "access" — regression guard for
@@ -540,10 +534,12 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(lifts["variants"][1]["render"], [line_planned])
         self.assertEqual(lifts["variants"][2]["render"], [line_disused])
         self.assertEqual(lifts["variants"][3]["render"], [line_operating_private, line_other_private])
-        self.assertEqual(lifts["variants"][4]["render"], [mixed_gondola_part, mixed_chair_part])
 
+        # mixed_lift's icon pair is deliberately NOT a variant (see comment
+        # above GROUP_VARIANTS) - it stays in the flat shared render instead,
+        # checked in test_ski_lifts_render_parts.
         shared_kinds = sorted(p["kind"] for p in lifts["render"])
-        self.assertEqual(shared_kinds, ["icon", "text"])
+        self.assertEqual(shared_kinds, ["icon", "icon", "icon", "text"])
 
         all_render_parts = lifts["render"] + [p for v in lifts["variants"] for p in v["render"]]
         self.assertEqual(all_render_parts.count(outline_part), 1)

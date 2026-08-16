@@ -161,12 +161,24 @@ LEGEND_SCALE_LABELS = {
 # §5.3 requires that a style layer land in `render` or in EXACTLY ONE
 # `variants[]` entry, never in both and never in more than one entry — the
 # standard does NOT permit cross-entry duplication. ski-lifts is fully
-# conformant (each of its 8 variant-bearing style layers appears in exactly
+# conformant (each of its 6 variant-bearing style layers appears in exactly
 # one axis entry — see the design doc's paint-coupling investigation for how
 # it was split into orthogonal "status"/"access" axes without duplication;
 # 2026-08-16 lift-status-icon-cleanup follow-up split "status" into three
-# tiers instead of two and added a "lift_type" axis for the mixed_lift icon
-# pair, see docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md).
+# tiers instead of two, see docs/superpowers/specs/
+# 2026-08-16-lift-status-icon-cleanup-design.md). The mixed_lift icon pair
+# (ski-lifts-icons-mixed-gondola/-chair) deliberately has NO variant entry
+# here (2026-08-16 follow-up, undoing the design doc's Baustein 5 choice) —
+# a dedicated "lift_type"/"Kombibahn" legend row would be the only lift_type
+# ever surfaced in the legend, inconsistent with the other 11 lift_type
+# values, which are folded into the group's one generic (unlabeled) icon
+# Part in `render`. Both mixed_lift layers now land in the flat `render`
+# list too, alongside that generic icon Part — §5.3 conformant (still lands
+# in exactly one place, just `render` instead of a variant), at the cost of
+# the flat `render` list literally naming "ski-gondola" for one Part even
+# though it only renders for mixed_lift features — the same imprecision the
+# group's other 11 lift_type values already have (their icon match can't be
+# resolved to a literal at all, so their generic Part shows icon: None).
 #
 # ski-runs-downhill/ski-runs-nordic had a grooming-terrain/snowmaking
 # variants[] split here previously (v2.1.0 migration, 2026-08-14), built
@@ -337,14 +349,6 @@ GROUP_VARIANTS = {
         # is status!=operating, i.e. they are themselves status-exclusive.
         {"axis": "access", "label": "Privat",
          "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
-        # mixed_lift (OpenSkiMap's own hybrid gondola/chair-lift concept, no
-        # further sub-typing available in the data) renders as two offset
-        # icons on the same line instead of a single misleading icon — see
-        # design doc Baustein 5. Not a step toward "lift_type as legend
-        # rows" in general (explicitly deferred, see docs/TODO.md); this is
-        # the one case that needed its own style layers regardless.
-        {"axis": "lift_type", "label": "Kombibahn (Gondel + Sessellift)",
-         "style_layer_ids": ["ski-lifts-icons-mixed-gondola", "ski-lifts-icons-mixed-chair"]},
     ],
 }
 
