@@ -5,6 +5,20 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 19:44
+
+### Changed
+- `scripts/generate_layer_list.py`: `ski-spot-type-v1`-Legend-Scale entfernt (`GROUP_LEGEND_SCALE`/
+  `LEGEND_SCALE_LABELS`) — wie zuvor bei `ski-lift-status-v1` hatte diese Scale exakt einen
+  Konsumenten (den einzigen `circle`-Part von `ski-spots`), der Umweg über eine geteilte Scale
+  brachte also keinen Vorteil (im Gegensatz zu `ski-difficulty-v1`, das echt von drei Gruppen
+  geteilt wird). `GROUP_VARIANTS["ski-spots"]` bekommt stattdessen 6 hand-authored Zeilen (Achse
+  `spot_type`: Lift Station, Halfpipe, Crossing, Avalanche Transceiver Training, Avalanche
+  Transceiver Checkpoint, Sonstige) mit fixer Farbe statt Scale-Referenz, direkt aus dem echten
+  `circle-color`-Match in `styles/openskimap-style.json` übernommen — ein neuer Regressionstest
+  liest diese Werte zur Laufzeit aus dem Style, damit sie nicht unbemerkt auseinanderlaufen. Keine
+  Style-Änderung nötig, `ski-spots` bleibt ein einziger physischer Circle-Layer.
+
 ## [Unreleased] - 2026-08-16 18:45
 
 ### Changed

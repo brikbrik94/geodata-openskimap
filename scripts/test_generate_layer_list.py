@@ -292,15 +292,56 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         )
         self.assertFalse(any(p["kind"] == "line" for p in nordic["render"]))
 
-    def test_ski_spots_uses_spot_type_scale(self):
+    def test_ski_spots_has_spot_type_variant_rows(self):
         spots = self.groups_by_key["ski-spots"]
-        self.assertEqual(len(spots["render"]), 1)
-        part = spots["render"][0]
-        self.assertEqual(part["kind"], "circle")
-        self.assertEqual(part["color"], {"mode": "scale", "scale_id": "ski-spot-type-v1"})
-        self.assertEqual(part["radius"], 4)
-        self.assertEqual(part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
-        self.assertEqual(part["stroke_width"], 1)
+        self.assertEqual(spots["render"], [])
+        self.assertEqual(
+            [(v["axis"], v["label"]) for v in spots["variants"]],
+            [
+                ("spot_type", "Lift Station"),
+                ("spot_type", "Halfpipe"),
+                ("spot_type", "Crossing"),
+                ("spot_type", "Avalanche Transceiver Training"),
+                ("spot_type", "Avalanche Transceiver Checkpoint"),
+                ("spot_type", "Sonstige"),
+            ],
+        )
+        expected_colors = ["#5a6b8c", "#8e44ad", "#e67e22", "#c0392b", "#c0392b", "#7f8c8d"]
+        for variant, color in zip(spots["variants"], expected_colors):
+            part = variant["render"][0]
+            self.assertEqual(part["kind"], "circle")
+            self.assertEqual(part["color"], {"mode": "fixed", "value": color})
+            self.assertEqual(part["radius"], 4)
+            self.assertEqual(part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
+            self.assertEqual(part["stroke_width"], 1)
+
+    def test_ski_spots_variant_colors_match_style_match_expression(self):
+        # Regression guard: the hand-authored colors above must not silently
+        # drift from the real circle-color match in styles/openskimap-style.json.
+        with open(STYLE_PATH, encoding="utf-8") as f:
+            style = json.load(f)
+        by_id = {layer["id"]: layer for layer in style["layers"]}
+        match_expr = by_id["ski-spots"]["paint"]["circle-color"]
+        self.assertEqual(match_expr[0], "match")
+        self.assertEqual(match_expr[1], ["get", "spot_type"])
+        values_colors_and_fallback = match_expr[2:]
+        fallback_color = values_colors_and_fallback[-1]
+        pairs = dict(zip(values_colors_and_fallback[:-1:2], values_colors_and_fallback[1::2]))
+
+        spots = self.groups_by_key["ski-spots"]
+        label_to_value = {
+            "Lift Station": "lift_station",
+            "Halfpipe": "halfpipe",
+            "Crossing": "crossing",
+            "Avalanche Transceiver Training": "avalanche_transceiver_training",
+            "Avalanche Transceiver Checkpoint": "avalanche_transceiver_checkpoint",
+        }
+        for variant in spots["variants"]:
+            color = variant["render"][0]["color"]["value"]
+            if variant["label"] == "Sonstige":
+                self.assertEqual(color, fallback_color)
+            else:
+                self.assertEqual(color, pairs[label_to_value[variant["label"]]])
 
     def test_ski_areas_alpine_circle_has_no_scale(self):
         alpine = self.groups_by_key["ski-areas-alpine"]
@@ -310,19 +351,18 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(circle_part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
         self.assertEqual(circle_part["stroke_width"], 1)
 
-    def test_legend_sections_has_two_scales(self):
+    def test_legend_sections_has_one_scale(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-spot-type-v1"})
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1"})
         self.assertEqual(sections_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
-        self.assertEqual(sections_by_id["ski-spot-type-v1"]["label"], "Spot-Typ")
         # Expert/Extreme dead branches removed (data never has them since the
         # difficulty remap - normalize_run_tags.py); Freeride removed from
         # the shared scale too (2026-08-16 fourth follow-up) - it's now its
         # own fixed-color "difficulty" axis row in ski-runs-downhill/
         # ski-runs-skitour instead, see comment above GROUP_VARIANTS.
-        # ski-lift-status-v1 removed entirely (2026-08-16 lift-status-icon-
-        # cleanup follow-up) - ski-lifts no longer has any categorized
-        # color, see comment above GROUP_LEGEND_SCALE.
+        # ski-lift-status-v1 and ski-spot-type-v1 removed entirely (2026-08-16
+        # lift-status-icon-cleanup follow-up) - neither scale had more than
+        # one consumer, see comment above GROUP_LEGEND_SCALE.
         self.assertEqual(
             [i["label"] for i in sections_by_id["ski-difficulty-v1"]["items"]],
             ["Novice", "Easy", "Intermediate", "Advanced", "Sonstige"],
@@ -545,14 +585,14 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(all_render_parts.count(outline_part), 1)
 
     def test_groups_without_variants_config_are_unaffected(self):
-        for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots"):
+        for key in ("ski-areas-alpine", "ski-areas-nordic"):
             group = self.groups_by_key[key]
             self.assertIsNone(group["variants"])
             self.assertEqual(len(group["render"]), len(group["style_layers"]))
 
-    def test_legend_sections_still_has_two_scales_after_variant_split(self):
+    def test_legend_sections_still_has_one_scale_after_variant_split(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-spot-type-v1"})
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1"})
 
     def test_variant_part_conformance_counts(self):
         # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3: a style layer lands in
@@ -575,7 +615,10 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         # variant-only, checked in test_ski_runs_downhill_has_grooming_variant_rows,
         # test_ski_runs_nordic_has_grooming_variant_rows, and
         # test_ski_runs_skitour_has_difficulty_variant_rows via the absence
-        # of any scale-colored/white/dashed line Part in render[].
+        # of any scale-colored/white/dashed line Part in render[]. ski-spots
+        # (2026-08-16 lift-status-icon-cleanup follow-up) is the same shape
+        # again: one physical "ski-spots" circle layer, six hand-authored
+        # spot_type rows, checked in test_ski_spots_has_spot_type_variant_rows.
         def total_part_count(group):
             count = len(group["render"])
             if group["variants"]:
@@ -597,6 +640,10 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         downhill = self.groups_by_key["ski-runs-downhill"]
         self.assertEqual(len(downhill["style_layers"]), 6)
         self.assertEqual(total_part_count(downhill), 8)  # 4 flat + 3 grooming rows + 1 freeride row
+
+        spots = self.groups_by_key["ski-spots"]
+        self.assertEqual(len(spots["style_layers"]), 1)
+        self.assertEqual(total_part_count(spots), 6)  # 0 flat + 6 spot_type rows
 
 
 if __name__ == "__main__":

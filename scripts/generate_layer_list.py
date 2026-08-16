@@ -126,27 +126,31 @@ GROUP_NAMES = {
 # §5.5). All four run-category groups render categorized colors from the
 # same difficulty match expression (verified byte-identical against
 # styles/openskimap-style.json — see design doc 2026-08-14), so they share
-# one central legend. ski-spots (spot_type) gets its own scale, newly
-# introduced with the v2.0 migration (v1.1 only had ungrouped per-group
-# legend_items for it). ski-lifts had a "ski-lift-status-v1" scale here too
-# until the 2026-08-16 lift-status-icon-cleanup follow-up: each status-color
-# match was replaced by fixed per-layer colors (every lift line layer is
-# already status-filtered, so a shared multi-branch scale only produced
-# incorrect cross-contaminated legend rows - every variant row pointed at
-# the SAME unfiltered 7-item scale, e.g. "In Betrieb" incorrectly also
-# listing "Disused"/"Abandoned"). See design doc
-# 2026-08-16-lift-status-icon-cleanup-design.md, Baustein 4. No categorized
-# color remains in the ski-lifts group, so it has no GROUP_LEGEND_SCALE
-# entry at all now.
+# one central legend — a genuine cross-group sharing benefit. ski-lifts had
+# a "ski-lift-status-v1" scale here too until the 2026-08-16
+# lift-status-icon-cleanup follow-up: each status-color match was replaced
+# by fixed per-layer colors (every lift line layer is already
+# status-filtered, so a shared multi-branch scale only produced incorrect
+# cross-contaminated legend rows - every variant row pointed at the SAME
+# unfiltered 7-item scale, e.g. "In Betrieb" incorrectly also listing
+# "Disused"/"Abandoned"). See design doc
+# 2026-08-16-lift-status-icon-cleanup-design.md, Baustein 4. ski-spots
+# (spot_type) had its own "ski-spot-type-v1" scale here too (v2.0
+# migration), removed the same day for the same reason as ski-lifts:
+# unlike the difficulty scale, it was used by exactly one group's one Part
+# — the "shared scale" indirection bought nothing, since there was never a
+# second consumer to share with. Its 6 categories are now hand-authored
+# "spot_type" variant rows instead (see comment above GROUP_VARIANTS),
+# each with its own fixed color read straight out of the real
+# ski-spots circle-color match. No categorized color remains in either
+# ski-lifts or ski-spots, so neither has a GROUP_LEGEND_SCALE entry now.
 GROUP_LEGEND_SCALE = {
     "ski-runs-downhill": "ski-difficulty-v1",
     "ski-runs-nordic": "ski-difficulty-v1",
     "ski-runs-skitour": "ski-difficulty-v1",
-    "ski-spots": "ski-spot-type-v1",
 }
 LEGEND_SCALE_LABELS = {
     "ski-difficulty-v1": "Schwierigkeitsgrade",
-    "ski-spot-type-v1": "Spot-Typ",
 }
 
 # group key -> list of {"axis": ..., "label": ..., "style_layer_ids": [...]}
@@ -349,6 +353,54 @@ GROUP_VARIANTS = {
         # is status!=operating, i.e. they are themselves status-exclusive.
         {"axis": "access", "label": "Privat",
          "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
+    ],
+    # ski-spots is one physical circle layer whose circle-color is a single
+    # match on spot_type (styles/openskimap-style.json, layer "ski-spots") —
+    # same "one layer, several legend rows" shape as the grooming/difficulty
+    # rows above, all six rows share style_layer_ids: ["ski-spots"]. Added
+    # 2026-08-16 (lift-status-icon-cleanup follow-up) replacing the
+    # previous single generic circle Part whose color pointed at a
+    # "ski-spot-type-v1" GROUP_LEGEND_SCALE entry — that scale had exactly
+    # one consumer (this one Part), so the shared-scale indirection bought
+    # nothing (see comment above GROUP_LEGEND_SCALE). Colors below are
+    # copied verbatim from the real match expression's branches.
+    "ski-spots": [
+        {"axis": "spot_type", "label": "Lift Station", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#5a6b8c"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
+        {"axis": "spot_type", "label": "Halfpipe", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#8e44ad"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
+        {"axis": "spot_type", "label": "Crossing", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#e67e22"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
+        {"axis": "spot_type", "label": "Avalanche Transceiver Training", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#c0392b"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
+        {"axis": "spot_type", "label": "Avalanche Transceiver Checkpoint", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#c0392b"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
+        {"axis": "spot_type", "label": "Sonstige", "style_layer_ids": ["ski-spots"],
+         "render": [{
+             "kind": "circle", "color": {"mode": "fixed", "value": "#7f8c8d"},
+             "stroke_color": {"mode": "fixed", "value": "#ffffff"}, "opacity": 1,
+             "width": None, "dasharray": None, "radius": 4, "stroke_width": 1, "icon": None,
+         }]},
     ],
 }
 
