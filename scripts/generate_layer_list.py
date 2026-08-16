@@ -124,44 +124,48 @@ LEGEND_SCALE_LABELS = {
     "ski-spot-type-v1": "Spot-Typ",
 }
 
-# group key -> list of {"label": ..., "style_layer_ids": [...]} — mutually-exclusive
-# legend-rendering variants within the group (design doc 2026-08-14,
-# legend-variants; proposed upstream as geodata-plugin-standard#4, not yet
-# part of the standard). A style-layer-id CAN appear in more than one
-# variant's list (e.g. ski-lifts-casing, ski-runs-downhill-gladed/-ungroomed
-# — see design doc's per-group filter tables) when its MapLibre `filter`
-# overlaps more than one variant's defining condition. Style layers not
-# listed in ANY variant here (and not in GROUP_VARIANT_EXCLUDE) stay in the
-# group's shared `render`. Groups not listed here at all get `variants: None`
-# and unchanged `render` behavior.
+# group key -> list of {"axis": ..., "label": ..., "style_layer_ids": [...]}
+# — filter-based variants within the group, grouped by a named `axis` per
+# GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3 (design docs: 2026-08-14
+# legend-variants for the original shared/variant split, 2026-08-16 for this
+# axis retaxonomy — geodata-plugin-standard#4, part of the standard as of
+# v2.1.0). A style-layer-id CAN appear in more than one variant's list
+# within the SAME axis when its MapLibre `filter` overlaps more than one
+# entry's defining condition (e.g. ski-runs-downhill-gladed/-ungroomed both
+# appear in the combined "Waldabfahrt, nicht präpariert" entry of the
+# grooming-terrain axis) — but never across two DIFFERENT axis entries of
+# the same group (e.g. ski-lifts-casing is only in the "status" axis's "In
+# Betrieb" entry now, not duplicated into "access" — see design doc's
+# paint-coupling investigation for why ski-lifts couldn't be split into
+# fully independent per-layer axes). Style layers not listed in ANY variant
+# here stay in the group's shared `render`. Groups not listed here at all
+# get `variants: None` and unchanged `render` behavior.
 GROUP_VARIANTS = {
     "ski-runs-nordic": [
-        {"label": "Gespurt", "style_layer_ids": ["ski-runs-nordic-line"]},
-        {"label": "Ungespurt", "style_layer_ids": ["ski-runs-nordic-ungroomed"]},
+        {"axis": "grooming", "label": "Gespurt", "style_layer_ids": ["ski-runs-nordic-line"]},
+        {"axis": "grooming", "label": "Ungespurt", "style_layer_ids": ["ski-runs-nordic-ungroomed"]},
+        {"axis": "snowmaking", "label": "Beschneit", "style_layer_ids": ["ski-runs-nordic-snowmaking"]},
     ],
     "ski-runs-downhill": [
-        {"label": "Präpariert", "style_layer_ids": ["ski-runs-downhill-line"]},
-        {"label": "Waldabfahrt", "style_layer_ids": ["ski-runs-downhill-gladed"]},
-        {"label": "Nicht präpariert", "style_layer_ids": ["ski-runs-downhill-ungroomed"]},
-        {"label": "Waldabfahrt, nicht präpariert",
+        {"axis": "grooming-terrain", "label": "Präpariert",
+         "style_layer_ids": ["ski-runs-downhill-line"]},
+        {"axis": "grooming-terrain", "label": "Waldabfahrt",
+         "style_layer_ids": ["ski-runs-downhill-gladed"]},
+        {"axis": "grooming-terrain", "label": "Nicht präpariert",
+         "style_layer_ids": ["ski-runs-downhill-ungroomed"]},
+        {"axis": "grooming-terrain", "label": "Waldabfahrt, nicht präpariert",
          "style_layer_ids": ["ski-runs-downhill-gladed", "ski-runs-downhill-ungroomed"]},
+        {"axis": "snowmaking", "label": "Beschneit",
+         "style_layer_ids": ["ski-runs-downhill-snowmaking"]},
     ],
     "ski-lifts": [
-        {"label": "In Betrieb", "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
-        {"label": "Sonstiger Status", "style_layer_ids": ["ski-lifts-line-other"]},
-        {"label": "In Betrieb (privat)",
-         "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line-private"]},
-        {"label": "Sonstiger Status (privat)", "style_layer_ids": ["ski-lifts-line-private-other"]},
+        {"axis": "status", "label": "In Betrieb",
+         "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
+        {"axis": "status", "label": "Sonstiger Status",
+         "style_layer_ids": ["ski-lifts-line-other"]},
+        {"axis": "access", "label": "Privat",
+         "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
     ],
-}
-
-# group key -> style-layer-ids dropped entirely (neither shared render nor any
-# variant) — independent overlay attributes that don't fit the shared/variant
-# binary (design doc decision 3), e.g. snowmaking can co-occur with any
-# grooming variant. Deferred, see docs/TODO.md.
-GROUP_VARIANT_EXCLUDE = {
-    "ski-runs-nordic": ["ski-runs-nordic-snowmaking"],
-    "ski-runs-downhill": ["ski-runs-downhill-snowmaking"],
 }
 
 
@@ -255,15 +259,15 @@ def _build_render(group_layers, group_key, scale_items):
 def _build_render_and_variants(group_layers, group_key, scale_items):
     """
     Split a group's layers into a shared render list and, for groups
-    configured in GROUP_VARIANTS, a list of mutually-exclusive variants
-    (design doc 2026-08-14, legend-variants; geodata-plugin-standard#4).
-    Layers listed in GROUP_VARIANT_EXCLUDE[group_key] are dropped entirely
-    before any other processing.
+    configured in GROUP_VARIANTS, a list of filter-based variants grouped by
+    axis (design docs 2026-08-14 legend-variants, 2026-08-16 axis
+    retaxonomy; geodata-plugin-standard#4, part of the standard as of
+    v2.1.0).
 
     Args:
         group_layers (list): MapLibre layer objects belonging to one group,
-            in style order (unfiltered)
-        group_key (str): key into GROUP_VARIANTS/GROUP_VARIANT_EXCLUDE
+            in style order
+        group_key (str): key into GROUP_VARIANTS
         scale_items (dict): passed through to _build_render unchanged — see
             its docstring; the same dict is used for every _build_render
             call below so cross-group AND cross-variant scale sharing keep
@@ -274,27 +278,26 @@ def _build_render_and_variants(group_layers, group_key, scale_items):
             is None when group_key has no GROUP_VARIANTS entry (render is
             then the complete Part list, unchanged from pre-variants
             behavior). Otherwise render holds only the Parts whose style
-            layer is not a member of any variant.
+            layer is not a member of any variant, and each variants[] entry
+            is {"axis": str, "label": str, "render": list[dict]}.
     """
-    excluded_ids = set(GROUP_VARIANT_EXCLUDE.get(group_key, []))
-    layers = [layer for layer in group_layers if layer.get("id") not in excluded_ids]
-
     variant_defs = GROUP_VARIANTS.get(group_key)
     if not variant_defs:
-        return _build_render(layers, group_key, scale_items), None
+        return _build_render(group_layers, group_key, scale_items), None
 
     variant_member_ids = set()
     for variant_def in variant_defs:
         variant_member_ids.update(variant_def["style_layer_ids"])
 
-    shared_layers = [layer for layer in layers if layer.get("id") not in variant_member_ids]
+    shared_layers = [layer for layer in group_layers if layer.get("id") not in variant_member_ids]
     render = _build_render(shared_layers, group_key, scale_items)
 
     variants = [
         {
+            "axis": variant_def["axis"],
             "label": variant_def["label"],
             "render": _build_render(
-                [layer for layer in layers if layer.get("id") in variant_def["style_layer_ids"]],
+                [layer for layer in group_layers if layer.get("id") in variant_def["style_layer_ids"]],
                 group_key,
                 scale_items,
             ),
