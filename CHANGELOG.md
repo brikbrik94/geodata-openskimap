@@ -5,7 +5,36 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-16 15:38
+## [Unreleased] - 2026-08-16 16:01
+
+### Changed
+- `styles/openskimap-style.json`: die `difficulty`-`color`-Match-Expressions (10 Vorkommen über
+  `ski-runs-downhill-fill/-line/-labels`, `ski-runs-nordic-fill/-casing/-labels`,
+  `ski-runs-skitour-fill/-line/-labels`, `ski-runs-connection-line`) verlieren die toten
+  `expert`/`extreme`-Zweige (identisch zu `advanced`/`freeride`, seit dem Difficulty-Remap nie
+  mehr in den Daten) und den `freeride`-Zweig — Freeride wird jetzt über einen vorgezogenen
+  `["==", ["get","difficulty"], "freeride"]`-Case-Zweig mit fixer Farbe behandelt (identisch zu
+  vorher, `hsl(34, 100%, 50%)`, über alle Convention-Zweige hinweg verifiziert konsistent), statt
+  als Teil der verschachtelten `difficulty_convention`-Match-Expressions. Rendering-Verhalten
+  unverändert (Freeride-Pisten bleiben orange, unabhängig von `difficulty_convention`) —
+  `layer_metadata_extractor.py`s `_resolve_case_branch` überspringt den neuen Zweig automatisch
+  (Property-Mismatch), sodass die extrahierte `ski-difficulty-v1`-Skala jetzt nur noch 4 echte
+  Stufen (Novice/Easy/Intermediate/Advanced) + `Sonstige` zeigt, ohne Änderungen am Extractor.
+- `ski-runs-downhill-line`/`ski-runs-connection-line`s `line-dasharray` bekommt einen dritten
+  `difficulty == "freeride"`-Zweig (gestrichelt `[3, 6]`, nach den grooming-Zweigen — Buckelpiste/
+  Backcountry haben weiterhin Vorrang vor Freeride, falls eine Piste beides ist).
+
+### Added
+- `scripts/generate_layer_list.py`: `GROUP_VARIANTS["ski-runs-downhill"]` bekommt eine vierte,
+  eigene `"difficulty"`-Achsen-Zeile `"Freeride"` (fixe orange Farbe statt Skalen-Referenz,
+  gestrichelt) neben den drei `"grooming"`-Zeilen. `GROUP_VARIANTS["ski-runs-skitour"]` ist neu
+  (vorher `variants: null`): zwei `"difficulty"`-Zeilen `"Skiroute"` (weiterhin
+  skalen-referenziert, ganz normal aus dem Style abgeleitet — Skitour-`line-dasharray` war nie
+  eine `case`-Expression) und `"Freeride"` (wie bei Downhill). `ski-runs-nordic` bekommt keine
+  Freeride-Zeile — verifiziert gegen die echten AT-gefilterten Daten: `freeride`/`extreme` kommen
+  bei Loipen (`uses LIKE '%nordic%'`) in keinem einzigen Feature vor. Zwei neue Regressionstests
+  lesen die echten `case`-Expression-Werte (Dasharray UND Farbe) aus dem Style, damit die
+  hand-authored Freeride-Werte nicht unbemerkt auseinanderlaufen. 120/120 Tests grün.
 
 ### Removed
 - `ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking` komplett aus

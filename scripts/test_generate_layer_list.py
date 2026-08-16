@@ -311,9 +311,14 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(sections_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
         self.assertEqual(sections_by_id["ski-lift-status-v1"]["label"], "Lift-Status")
         self.assertEqual(sections_by_id["ski-spot-type-v1"]["label"], "Spot-Typ")
+        # Expert/Extreme dead branches removed (data never has them since the
+        # difficulty remap - normalize_run_tags.py); Freeride removed from
+        # the shared scale too (2026-08-16 fourth follow-up) - it's now its
+        # own fixed-color "difficulty" axis row in ski-runs-downhill/
+        # ski-runs-skitour instead, see comment above GROUP_VARIANTS.
         self.assertEqual(
             [i["label"] for i in sections_by_id["ski-difficulty-v1"]["items"]],
-            ["Novice", "Easy", "Intermediate", "Advanced", "Expert", "Freeride", "Extreme", "Sonstige"],
+            ["Novice", "Easy", "Intermediate", "Advanced", "Sonstige"],
         )
         self.assertEqual(
             [i["label"] for i in sections_by_id["ski-lift-status-v1"]["items"]],
@@ -358,11 +363,16 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         # -downhill-snowmaking was removed from the style entirely in a
         # third follow-up the same day (never matched real data - boolean
         # export bug, docs/TODO.md), so no "line" kind Part remains in flat
-        # render[] at all.
+        # render[] at all. A fourth follow-up added the "Freeride" row
+        # (its own fixed-orange dashed row, "difficulty" axis, not
+        # "grooming" - see comment above GROUP_VARIANTS).
         downhill = self.groups_by_key["ski-runs-downhill"]
         self.assertEqual(
             [(v["axis"], v["label"]) for v in downhill["variants"]],
-            [("grooming", "Piste"), ("grooming", "Piste (Backcountry)"), ("grooming", "Buckelpiste")],
+            [
+                ("grooming", "Piste"), ("grooming", "Piste (Backcountry)"), ("grooming", "Buckelpiste"),
+                ("difficulty", "Freeride"),
+            ],
         )
         piste_part = {
             "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
@@ -371,11 +381,43 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         }
         backcountry_part = dict(piste_part, dasharray=[3, 6])
         mogul_part = dict(piste_part, dasharray=[1, 3])
+        freeride_part = {
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+            "radius": None, "stroke_width": None, "icon": None,
+        }
         self.assertEqual(downhill["variants"][0]["render"], [piste_part])
         self.assertEqual(downhill["variants"][1]["render"], [backcountry_part])
         self.assertEqual(downhill["variants"][2]["render"], [mogul_part])
+        self.assertEqual(downhill["variants"][3]["render"], [freeride_part])
         shared_kinds = [p["kind"] for p in downhill["render"]]
         self.assertEqual(shared_kinds, ["fill", "outline", "text", "outline"])
+
+    def test_ski_runs_skitour_has_difficulty_variant_rows(self):
+        # 2026-08-16 fourth follow-up: freeride pulled out of the shared
+        # ski-difficulty-v1 scale, split into its own "Freeride" row (fixed
+        # orange) alongside a "Skiroute" row for everything else - see
+        # comment above GROUP_VARIANTS. Unlike downhill/nordic, "Skiroute"
+        # has no hand-authored "render": ski-runs-skitour-line's dasharray
+        # was never a case-expression (always a plain literal [3, 6]), so
+        # it derives normally from the real style layer.
+        skitour = self.groups_by_key["ski-runs-skitour"]
+        self.assertEqual(
+            [(v["axis"], v["label"]) for v in skitour["variants"]],
+            [("difficulty", "Skiroute"), ("difficulty", "Freeride")],
+        )
+        self.assertEqual(skitour["variants"][0]["render"], [{
+            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+            "radius": None, "stroke_width": None, "icon": None,
+        }])
+        self.assertEqual(skitour["variants"][1]["render"], [{
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+            "radius": None, "stroke_width": None, "icon": None,
+        }])
+        shared_kinds = [p["kind"] for p in skitour["render"]]
+        self.assertEqual(shared_kinds, ["fill", "text"])
 
     def test_downhill_and_nordic_variant_dasharray_matches_style_case_expression(self):
         # GROUP_VARIANTS' hand-authored dasharray values for the grooming
@@ -405,11 +447,40 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         downhill_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-downhill"]}
         self.assertEqual(downhill_variants["Buckelpiste"]["dasharray"], downhill_branches["mogul"])
         self.assertEqual(downhill_variants["Piste (Backcountry)"]["dasharray"], downhill_branches["backcountry"])
+        self.assertEqual(downhill_variants["Freeride"]["dasharray"], downhill_branches["freeride"])
         self.assertIsNone(downhill_variants["Piste"]["dasharray"])
 
         nordic_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-nordic"]}
         self.assertEqual(nordic_variants["Loipe (Backcountry)"]["dasharray"], nordic_branches["backcountry"])
         self.assertIsNone(nordic_variants["Loipe"]["dasharray"])
+
+    def test_freeride_variant_color_matches_style_case_expression(self):
+        # GROUP_VARIANTS' hand-authored fixed color for the "Freeride" rows
+        # (2026-08-16 fourth follow-up, see comment above GROUP_VARIANTS) is
+        # NOT derived automatically from the style either - it's the output
+        # of the outer case's `difficulty == "freeride"` branch, which
+        # extract_part_color/_resolve_case_branch deliberately skips (it
+        # only resolves the difficulty_convention branch, see
+        # layer_metadata_extractor.py). This reads that branch's literal
+        # color straight out of styles/openskimap-style.json for both
+        # affected line-color expressions so it can't silently drift from
+        # the hand-authored value.
+        with open(STYLE_PATH, encoding="utf-8") as f:
+            style = json.load(f)
+        by_id = {layer["id"]: layer for layer in style["layers"]}
+
+        for layer_id in ("ski-runs-downhill-line", "ski-runs-skitour-line"):
+            case_expr = by_id[layer_id]["paint"]["line-color"]
+            self.assertEqual(case_expr[1], ["==", ["get", "difficulty"], "freeride"])
+            freeride_color = case_expr[2]
+            for group_key in ("ski-runs-downhill", "ski-runs-skitour"):
+                freeride_variant = next(
+                    v for v in generate_layer_list.GROUP_VARIANTS[group_key] if v["label"] == "Freeride"
+                )
+                self.assertEqual(
+                    freeride_variant["render"][0]["color"],
+                    {"mode": "fixed", "value": freeride_color},
+                )
 
     def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
         lifts = self.groups_by_key["ski-lifts"]
@@ -457,7 +528,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(all_render_parts.count(outline_part), 1)
 
     def test_groups_without_variants_config_are_unaffected(self):
-        for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots", "ski-runs-skitour"):
+        for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots"):
             group = self.groups_by_key[key]
             self.assertIsNone(group["variants"])
             self.assertEqual(len(group["render"]), len(group["style_layers"]))
@@ -475,18 +546,19 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         # len(style_layers) verifies this directly: equal counts ==
         # conformant.
         #
-        # ski-runs-downhill/ski-runs-nordic's "grooming" variants (2026-08-16
-        # second follow-up, see comment above GROUP_VARIANTS) are hand-authored
-        # literal Parts, not derived per style layer - one physical style
-        # layer (-downhill-line/-connection-line/-nordic-line) deliberately
-        # produces MULTIPLE Parts (one per grooming-state row), so the 1:1
-        # count check does not apply to these two groups. What still holds
-        # (and is what §5.3 actually cares about) is that -downhill-line/
-        # -connection-line/-nordic-line never ALSO appear in the flat
-        # render[] - they're variant-only, checked in
-        # test_ski_runs_downhill_has_grooming_variant_rows and
-        # test_ski_runs_nordic_has_grooming_variant_rows via the absence of
-        # any scale-colored/white line Part in render[].
+        # ski-runs-downhill/ski-runs-nordic/ski-runs-skitour's variants
+        # (2026-08-16 second/fourth follow-ups, see comment above
+        # GROUP_VARIANTS) are (partly) hand-authored literal Parts, not
+        # derived per style layer - one physical style layer
+        # (-downhill-line/-connection-line/-nordic-line/-skitour-line)
+        # deliberately produces MULTIPLE Parts (one per grooming/difficulty
+        # row), so the 1:1 count check does not apply to these three groups.
+        # What still holds (and is what §5.3 actually cares about) is that
+        # those line layers never ALSO appear in the flat render[] - they're
+        # variant-only, checked in test_ski_runs_downhill_has_grooming_variant_rows,
+        # test_ski_runs_nordic_has_grooming_variant_rows, and
+        # test_ski_runs_skitour_has_difficulty_variant_rows via the absence
+        # of any scale-colored/white/dashed line Part in render[].
         def total_part_count(group):
             count = len(group["render"])
             if group["variants"]:
@@ -501,9 +573,13 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(len(nordic["style_layers"]), 4)
         self.assertEqual(total_part_count(nordic), 5)  # 3 flat + 2 grooming rows
 
+        skitour = self.groups_by_key["ski-runs-skitour"]
+        self.assertEqual(len(skitour["style_layers"]), 3)
+        self.assertEqual(total_part_count(skitour), 4)  # 2 flat + 2 difficulty rows
+
         downhill = self.groups_by_key["ski-runs-downhill"]
         self.assertEqual(len(downhill["style_layers"]), 6)
-        self.assertEqual(total_part_count(downhill), 7)  # 4 flat + 3 grooming rows
+        self.assertEqual(total_part_count(downhill), 8)  # 4 flat + 3 grooming rows + 1 freeride row
 
 
 if __name__ == "__main__":

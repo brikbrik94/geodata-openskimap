@@ -188,6 +188,29 @@ LEGEND_SCALE_LABELS = {
 # `render` and a variant, or landing in `render` itself) still holds, since
 # these style layers are entirely variant-only now, never in the flat
 # `render` list.
+#
+# Fourth follow-up, same day: "freeride" pulled out of the shared
+# ski-difficulty-v1 color scale entirely and given its own "difficulty"-axis
+# row (own fixed orange, not a scale reference) in ski-runs-downhill AND
+# ski-runs-skitour — real data confirms freeride/extreme never occurs in
+# nordic runs at all (verified against the AT-filtered GeoPackage), so
+# nordic gets no such row and its scale genuinely never had freeride to
+# begin with. styles/openskimap-style.json's color match expressions had
+# their difficulty branches restructured accordingly (an outer
+# `difficulty == "freeride"` case-branch ahead of the difficulty_convention
+# branches, whose nested match expressions no longer list freeride/extreme/
+# expert at all — resolved by _resolve_case_branch in
+# layer_metadata_extractor.py the same way as before, so the shared scale's
+# extracted items shrink automatically without any extractor changes).
+# ski-runs-downhill-line/-connection-line's line-dasharray case-expression
+# gained a `difficulty == "freeride"` branch (dashed [3, 6], same pattern as
+# backcountry) placed AFTER the grooming branches, so grooming still wins
+# for a feature that happens to be both freeride-difficulty and mogul/
+# backcountry-groomed. ski-runs-skitour-line needed no dasharray change (it
+# was already unconditionally dashed regardless of difficulty) — only its
+# "Skiroute" row is new, and it's derived normally (no hand-authored
+# "render") since skitour's dasharray was never a case-expression to begin
+# with.
 GROUP_VARIANTS = {
     "ski-runs-downhill": [
         {
@@ -217,6 +240,50 @@ GROUP_VARIANTS = {
             "render": [{
                 "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
                 "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [1, 3],
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+        # "difficulty" axis, not "grooming": freeride is its own difficulty
+        # class (2026-08-16 fourth follow-up), pulled out of the shared
+        # ski-difficulty-v1 scale entirely (no longer a scale color, its
+        # own fixed orange) and given its own dashed row, on top of
+        # whatever grooming state a feature has (grooming still wins for
+        # mogul/backcountry — see the line-dasharray case-expression on
+        # ski-runs-downhill-line/-connection-line, difficulty=="freeride"
+        # is checked after those two branches).
+        {
+            "axis": "difficulty",
+            "label": "Freeride",
+            "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+    ],
+    "ski-runs-skitour": [
+        # Unlike downhill/nordic, ski-runs-skitour-line's dasharray is a
+        # plain literal (always [3, 6], no grooming-based case-expression -
+        # see styles/openskimap-style.json), so the "Skiroute" row doesn't
+        # need a hand-authored "render": it's derived normally from the
+        # real style layer via style_layer_ids, same as any group with no
+        # GROUP_VARIANTS entry. Freeride is split out for the same reason
+        # as downhill's (own fixed orange color, pulled from the shared
+        # scale) - unlike downhill, no dasharray change was needed in the
+        # style, since skitour was already unconditionally dashed.
+        {
+            "axis": "difficulty",
+            "label": "Skiroute",
+            "style_layer_ids": ["ski-runs-skitour-line"],
+        },
+        {
+            "axis": "difficulty",
+            "label": "Freeride",
+            "style_layer_ids": ["ski-runs-skitour-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "fixed", "value": "hsl(34, 100%, 50%)"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
                 "radius": None, "stroke_width": None, "icon": None,
             }],
         },
