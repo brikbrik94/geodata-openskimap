@@ -5,6 +5,27 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 09:59
+
+### Added
+- `scripts/normalize_run_tags.py`: normalisiert `grooming`-Werte pro Pisten-/Loipen-Kategorie
+  (Downhill: nur `mogul`/`backcountry` bleiben erhalten; Nordic: `classic`/`classic+skating`/
+  `skating`/`scooter`/`backcountry`) — behebt sowohl OpenSkiMap-Merge-Artefakte (Loipe+Piste zu
+  einem Feature fusioniert) als auch die semantisch redundante `classic`-Markierung auf reinen
+  Downhill-Pisten. Siehe
+  `docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`.
+- `scripts/analyze_legend_categories.py`: manuelles Analyse-Tool (kein Pipeline-Schritt), das aus
+  den `.jsonseq`-Zwischendateien in `work/` Häufigkeitstabellen pro Gruppe/Property erzeugt.
+
+### Changed
+- **Breaking:** `scripts/convert.sh` dupliziert Pisten/Loipen mit Mehrfachnutzung jetzt in jede
+  zutreffende Kategorie (analog zu Ski-Gebieten) statt fester Priorität
+  `downhill > nordic > skitour > other` — ein Feature mit `uses="nordic,downhill"` erscheint jetzt
+  in beiden Layern. Betrifft `ski_runs_nordic_*`/`ski_runs_skitour_*`. Löst das Problem, dass eine
+  "nur Loipen"-Ansicht Mischnutzungs-Segmente sonst komplett verliert.
+- `scripts/convert.sh` löscht die `.jsonseq`-Zwischendateien am Ende nicht mehr (`work/` ist
+  bereits vollständig gitignored) — Voraussetzung für `analyze_legend_categories.py`.
+
 ## [Unreleased] - 2026-08-16 08:21
 
 ### Changed
