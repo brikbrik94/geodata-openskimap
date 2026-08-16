@@ -42,6 +42,8 @@ from layer_metadata_extractor import (
     extract_part_dasharray,
     extract_part_radius,
     extract_part_icon,
+    extract_part_stroke_color,
+    extract_part_stroke_width,
 )
 
 SOURCE_GPKG_REL_PATH = "data/src/openskidata.gpkg"
@@ -166,7 +168,7 @@ GROUP_VARIANT_EXCLUDE = {
 def _build_render(group_layers, group_key, scale_items):
     """
     Build the render:Array<Part> list for one group (GEODATA_PLUGIN_STANDARD.md
-    v2.0.0 §5.3): one Part per layer in group_layers, in style order. Layers
+    v2.1.0 §5.3): one Part per layer in group_layers, in style order. Layers
     without a mapped kind (determine_part_kind returns None) are skipped, so
     render can be shorter than group_layers.
 
@@ -238,10 +240,12 @@ def _build_render(group_layers, group_key, scale_items):
         parts.append({
             "kind": kind,
             "color": color,
+            "stroke_color": extract_part_stroke_color(layer, kind),
             "opacity": extract_part_opacity(layer, kind),
             "width": extract_part_width(layer, kind),
             "dasharray": extract_part_dasharray(layer, kind),
             "radius": extract_part_radius(layer, kind),
+            "stroke_width": extract_part_stroke_width(layer, kind),
             "icon": extract_part_icon(layer, kind),
         })
 
@@ -304,7 +308,7 @@ def _build_render_and_variants(group_layers, group_key, scale_items):
 def _build_legend_sections(scale_items):
     """
     Turn the scale_id -> items map collected by _build_render into the
-    top-level legend_sections list (GEODATA_PLUGIN_STANDARD.md v2.0.0 §5.6).
+    top-level legend_sections list (GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.6).
 
     Args:
         scale_items (dict): scale_id -> [{"label", "color"}, ...]
@@ -333,10 +337,13 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
         pmtiles_path (str): path relative to dist/pmtiles/, e.g. "openskimap.pmtiles"
 
     Returns:
-        dict: {"version": "2.0", "styles": [...], "legend_sections": [...] | None}
-            per GEODATA_PLUGIN_STANDARD.md v2.0.0 §5. Each group additionally
-            carries the locally-proposed `variants` field (not part of the
-            v2.0.0 standard; tracked as geodata-plugin-standard#4).
+        dict: {"version": "2.1", "styles": [...], "legend_sections": [...] | None}
+            per GEODATA_PLUGIN_STANDARD.md v2.1.0 §5. Each group's `variants[]`
+            entries carry an `axis` field per the standard's §5.3 model;
+            `axis` naming/grouping is a reference-implementation judgment
+            call the standard explicitly leaves open. `source_layers`
+            (plural) remains a locally-proposed extension, not part of the
+            standard.
 
     Raises:
         KeyError: a style layer's id is not in GROUP_MAP (see module docstring)
@@ -383,7 +390,7 @@ def build_layer_list(style_data, style_id, name, pmtiles_path):
     legend_sections = _build_legend_sections(scale_items)
 
     return {
-        "version": "2.0",
+        "version": "2.1",
         "styles": [
             {
                 "style_id": style_id,

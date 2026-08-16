@@ -244,8 +244,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         cls.result = build_layer_list(style_data, "openskimap", "OpenSkiMap", "openskimap.pmtiles")
         cls.groups_by_key = {g["template"]: g for g in cls.result["styles"][0]["groups"]}
 
-    def test_schema_version_is_2_0(self):
-        self.assertEqual(self.result["version"], "2.0")
+    def test_schema_version_is_2_1(self):
+        self.assertEqual(self.result["version"], "2.1")
 
     def test_group_names_are_german(self):
         self.assertEqual(self.groups_by_key["ski-runs-downhill"]["name"], "Pisten")
@@ -315,12 +315,16 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(part["kind"], "circle")
         self.assertEqual(part["color"], {"mode": "scale", "scale_id": "ski-spot-type-v1"})
         self.assertEqual(part["radius"], 4)
+        self.assertEqual(part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
+        self.assertEqual(part["stroke_width"], 1)
 
     def test_ski_areas_alpine_circle_has_no_scale(self):
         alpine = self.groups_by_key["ski-areas-alpine"]
         circle_part = next(p for p in alpine["render"] if p["kind"] == "circle")
         self.assertEqual(circle_part["color"], {"mode": "fixed", "value": "#3085fe"})
         self.assertEqual(circle_part["radius"], 6)
+        self.assertEqual(circle_part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
+        self.assertEqual(circle_part["stroke_width"], 1)
 
     def test_legend_sections_has_three_scales(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
@@ -344,11 +348,13 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(nordic["variants"][1]["label"], "Ungespurt")
         self.assertEqual(nordic["variants"][0]["render"], [{
             "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-            "opacity": 1, "width": 3.0, "dasharray": None, "radius": None, "icon": None,
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+            "radius": None, "stroke_width": None, "icon": None,
         }])
         self.assertEqual(nordic["variants"][1]["render"], [{
             "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-            "opacity": 1, "width": 3.0, "dasharray": [2, 4], "radius": None, "icon": None,
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [2, 4],
+            "radius": None, "stroke_width": None, "icon": None,
         }])
         shared_kinds = [p["kind"] for p in nordic["render"]]
         self.assertEqual(shared_kinds, ["fill", "outline", "text"])
@@ -358,7 +364,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         all_parts = nordic["render"] + [p for v in nordic["variants"] for p in v["render"]]
         self.assertNotIn(
             {"kind": "line", "color": {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"},
-             "opacity": 1, "width": 1.5, "dasharray": None, "radius": None, "icon": None},
+             "stroke_color": None, "opacity": 1, "width": 1.5, "dasharray": None,
+             "radius": None, "stroke_width": None, "icon": None},
             all_parts,
         )
         self.assertEqual(len(nordic["style_layers"]), 6)
@@ -374,11 +381,13 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         )
         gladed_part = {
             "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
-            "opacity": 1, "width": 3.0, "dasharray": [0.1, 4], "radius": None, "icon": None,
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [0.1, 4],
+            "radius": None, "stroke_width": None, "icon": None,
         }
         ungroomed_part = {
             "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
-            "opacity": 1, "width": 3.0, "dasharray": [2, 4], "radius": None, "icon": None,
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [2, 4],
+            "radius": None, "stroke_width": None, "icon": None,
         }
         self.assertEqual(downhill["variants"][1]["render"], [gladed_part])
         self.assertEqual(downhill["variants"][2]["render"], [ungroomed_part])
@@ -393,7 +402,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         )
         outline_part = {
             "kind": "outline", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
-            "opacity": 1, "width": 5.0, "dasharray": None, "radius": None, "icon": None,
+            "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
+            "radius": None, "stroke_width": None, "icon": None,
         }
         self.assertIn(outline_part, lifts["variants"][0]["render"])
         self.assertEqual(len(lifts["variants"][0]["render"]), 2)
