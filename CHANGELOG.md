@@ -5,6 +5,18 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 12:28
+
+### Added
+- `scripts/normalize_run_tags.py`: `GROOMING_ALLOWLIST` um `"skitour": {"backcountry"}` erweitert.
+  Anders als bei Downhill/Nordic sind die betroffenen Werte (`classic`/`classic+skating`/
+  `skating`/`scooter`/`mogul`, 18 von 1.673 Skitour-Features) überwiegend **keine**
+  OpenSkiMap-Merge-Artefakte, sondern sitzen auf reinen Skitour-Ways — nach manueller Prüfung
+  aller 18 betroffenen OSM-Ways/-Relationen gegen die Live-Daten bestätigt: unzureichend
+  gepflegte OSM-Tags ohne Skitour-Relevanz (Skitouren sind qua Definition ungroomed). Verworfen.
+- `scripts/convert.sh`: `normalize_run_tags.py`-Aufruf für `ski_runs_skitour_line/_poly.jsonseq`
+  ergänzt (analog zu Downhill/Nordic).
+
 ## [Unreleased] - 2026-08-16 09:59
 
 ### Added

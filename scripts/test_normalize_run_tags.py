@@ -53,6 +53,33 @@ class NormalizeGroomingTests(unittest.TestCase):
         props = {"grooming": "mogul"}
         self.assertIsNone(normalize_grooming(props, "nordic")["grooming"])
 
+    def test_skitour_backcountry_passes_through(self):
+        props = {"grooming": "backcountry"}
+        self.assertEqual(normalize_grooming(props, "skitour")["grooming"], "backcountry")
+
+    def test_skitour_classic_is_nulled(self):
+        # Verified against live OSM data (2026-08-16): mostly mistagged/
+        # unmaintained on pure skitour ways, not meaningful touring info.
+        props = {"grooming": "classic"}
+        self.assertIsNone(normalize_grooming(props, "skitour")["grooming"])
+
+    def test_skitour_classic_plus_skating_is_nulled(self):
+        props = {"grooming": "classic+skating"}
+        self.assertIsNone(normalize_grooming(props, "skitour")["grooming"])
+
+    def test_skitour_skating_is_nulled(self):
+        props = {"grooming": "skating"}
+        self.assertIsNone(normalize_grooming(props, "skitour")["grooming"])
+
+    def test_skitour_scooter_is_nulled(self):
+        props = {"grooming": "scooter"}
+        self.assertIsNone(normalize_grooming(props, "skitour")["grooming"])
+
+    def test_skitour_mogul_is_nulled(self):
+        # mogul (Buckelpiste) is downhill-specific, doesn't apply to skitour.
+        props = {"grooming": "mogul"}
+        self.assertIsNone(normalize_grooming(props, "skitour")["grooming"])
+
     def test_missing_grooming_key_stays_none(self):
         props = {"name": "Some Run"}
         self.assertIsNone(normalize_grooming(props, "downhill")["grooming"])
@@ -62,14 +89,15 @@ class NormalizeGroomingTests(unittest.TestCase):
         self.assertIsNone(normalize_grooming(props, "downhill")["grooming"])
 
     def test_category_without_allowlist_entry_passes_through_unchanged(self):
-        # skitour/other were not investigated this session - see design doc
-        # "Explizit zurückgestellt". Must NOT be silently normalized.
+        # "other" is a heterogeneous catch-all (hike/sled/etc.), not
+        # investigated - see design doc "Explizit zurückgestellt". Must NOT
+        # be silently normalized.
         props = {"grooming": "classic+skating"}
-        result = normalize_grooming(props, "skitour")
+        result = normalize_grooming(props, "other")
         self.assertEqual(result["grooming"], "classic+skating")
 
-    def test_allowlist_has_only_downhill_and_nordic(self):
-        self.assertEqual(set(GROOMING_ALLOWLIST.keys()), {"downhill", "nordic"})
+    def test_allowlist_covers_downhill_nordic_skitour_not_other(self):
+        self.assertEqual(set(GROOMING_ALLOWLIST.keys()), {"downhill", "nordic", "skitour"})
 
 
 class NormalizeFileTests(unittest.TestCase):

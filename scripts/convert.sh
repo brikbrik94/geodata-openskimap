@@ -69,9 +69,10 @@ ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 # OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL wertet
 # "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
 # Features ganz ohne uses-Wert aus allen vier Kategorien herausfallen.
-# Downhill/Nordic bekommen zusaetzlich eine grooming-Tag-Normalisierung
-# (normalize_run_tags.py, siehe unten) - Skitour/Other nicht, siehe
-# design doc "Explizit zurueckgestellt".
+# Downhill/Nordic/Skitour bekommen zusaetzlich eine grooming-Tag-
+# Normalisierung (normalize_run_tags.py, siehe unten) - Other nicht (siehe
+# design doc "Explizit zurueckgestellt"; Skitour kam am 2026-08-16 dazu,
+# nach manueller Pruefung aller betroffenen OSM-Ways gegen die Live-Daten).
 DOWNHILL_RUN_WHERE="uses LIKE '%downhill%' AND $COUNTRY_WHERE"
 NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND $COUNTRY_WHERE"
 SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND $COUNTRY_WHERE"
@@ -79,7 +80,7 @@ OTHER_RUN_WHERE="(uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE 
 
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
-log_info "Normalisiere grooming-Tags (downhill/nordic)..."
+log_info "Normalisiere grooming-Tags (downhill/nordic/skitour)..."
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_line.jsonseq downhill
 python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_downhill_poly.jsonseq downhill
 
@@ -90,6 +91,9 @@ python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_nordic_poly.jsonseq nordic
 
 ogr2ogr -f GeoJSONSeq ski_runs_skitour_line.jsonseq "$INPUT_FILE" runs_linestring -where "$SKITOUR_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_skitour_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$SKITOUR_RUN_WHERE"
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_skitour_line.jsonseq skitour
+python3 "$SCRIPT_DIR/normalize_run_tags.py" ski_runs_skitour_poly.jsonseq skitour
+
 ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_other_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$OTHER_RUN_WHERE"
 

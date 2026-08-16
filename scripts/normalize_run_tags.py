@@ -17,9 +17,16 @@ its category (see docs/superpowers/specs/
    is semantically redundant there: a downhill piste is assumed groomed
    unless marked otherwise (mogul/backcountry).
 
-Only `downhill` and `nordic` have allowlists - `skitour`/`other` were not
-investigated this session and pass through unchanged (see design doc,
-"Explizit zurückgestellt").
+`downhill`/`nordic`/`skitour` have allowlists - `other` (a heterogeneous
+catch-all: hike/sled/etc.) was not investigated and passes through
+unchanged (see design doc, "Explizit zurückgestellt").
+
+`skitour`'s allowlist was added after manually reviewing all 18 affected
+OSM ways/relations against live OSM data (mogul/scooter/skating values,
+2026-08-16 follow-up): unlike downhill/nordic's fusion artifacts, most of
+these sit on *pure* skitour-only ways (no merge), but are simply
+mistagged/unmaintained on OSM - ski-touring routes aren't machine-groomed,
+so only `backcountry` is meaningful there.
 """
 import json
 import os
@@ -28,6 +35,7 @@ import sys
 GROOMING_ALLOWLIST = {
     "downhill": {"mogul", "backcountry"},
     "nordic": {"classic", "classic+skating", "skating", "scooter", "backcountry"},
+    "skitour": {"backcountry"},
 }
 
 # The four real run categories produced by scripts/convert.sh. Not the same
