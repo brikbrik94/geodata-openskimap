@@ -579,40 +579,6 @@
       }
     },
     {
-      "id": "ski-runs-downhill-snowmaking",
-      "type": "line",
-      "source": "ski_source",
-      "source-layer": "ski_runs_downhill_line",
-      "minzoom": 11,
-      "filter": [
-        "any",
-        [
-          "==",
-          [
-            "get",
-            "snowmaking"
-          ],
-          true
-        ],
-        [
-          "==",
-          [
-            "get",
-            "snowfarming"
-          ],
-          true
-        ]
-      ],
-      "layout": {
-        "line-cap": "round",
-        "line-join": "round"
-      },
-      "paint": {
-        "line-color": "rgba(196, 251, 255, 0.9)",
-        "line-width": 1.5
-      }
-    },
-    {
       "id": "ski-runs-nordic-line",
       "type": "line",
       "source": "ski_source",
@@ -677,40 +643,6 @@
             ]
           ]
         ]
-      }
-    },
-    {
-      "id": "ski-runs-nordic-snowmaking",
-      "type": "line",
-      "source": "ski_source",
-      "source-layer": "ski_runs_nordic_line",
-      "minzoom": 11,
-      "filter": [
-        "any",
-        [
-          "==",
-          [
-            "get",
-            "snowmaking"
-          ],
-          true
-        ],
-        [
-          "==",
-          [
-            "get",
-            "snowfarming"
-          ],
-          true
-        ]
-      ],
-      "layout": {
-        "line-cap": "round",
-        "line-join": "round"
-      },
-      "paint": {
-        "line-color": "rgba(196, 251, 255, 0.9)",
-        "line-width": 1.5
       }
     },
     {

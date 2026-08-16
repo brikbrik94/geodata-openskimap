@@ -44,13 +44,14 @@ auf OSM `oneway=yes`, unser Export zeigt `0` — kein Zufall/Rand-Fall, sondern 
 Export-/Konvertierungsfehler bei OpenSkiMap selbst (nicht durch unseren AT-Filter verursacht,
 siehe `docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`).
 
-Konkrete Konsequenz: `ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking`
-(v2.1.0-Migration, `e5f227f`) können mit den aktuell heruntergeladenen Daten **nie** matchen —
-nicht weil es keine Beschneiung gibt, sondern weil das Datenfeld kaputt exportiert wird. Die
-frühere `ski-runs-downhill-gladed`-Variante ist davon nicht mehr betroffen, da der zugehörige
-Style-Layer beim Pisten-Restyling (2026-08-16) ganz entfernt wurde (Waldabfahrten sind über
-`gladed` ohnehin nie darstellbar gewesen). Nicht selbst fixbar (Upstream-Problem bei OpenSkiMap)
-— bei Gelegenheit dort melden oder regelmäßig neu prüfen, ob ein zukünftiger Datenexport das
+Konkrete Konsequenz: `ski-runs-downhill-gladed` (Waldabfahrten-Variante) und
+`ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking` (v2.1.0-Migration, `e5f227f`)
+konnten mit den heruntergeladenen Daten **nie** matchen — nicht weil es keine
+Waldabfahrten/Beschneiung gibt, sondern weil die zugrundeliegenden Datenfelder kaputt
+exportiert werden. Alle drei Style-Layer wurden deshalb beim Pisten-Restyling (2026-08-16)
+ganz aus dem Style entfernt statt als permanent leere Layer stehen zu bleiben. Nicht selbst
+fixbar (Upstream-Problem bei OpenSkiMap) — bei Gelegenheit dort melden oder regelmäßig neu
+prüfen, ob ein zukünftiger Datenexport das
 Feld korrekt befüllt.
 
 ## Übungswiesen (`ski-runs-playground`): Schraffur-Fläche + Icon

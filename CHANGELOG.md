@@ -5,7 +5,18 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-16 15:28
+## [Unreleased] - 2026-08-16 15:38
+
+### Removed
+- `ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking` komplett aus
+  `styles/openskimap-style.json` entfernt (`GROUP_MAP`-Einträge in
+  `scripts/generate_layer_list.py` entsprechend entfernt). Wie zuvor bei
+  `ski-runs-downhill-gladed` (Waldabfahrten) gilt: das `snowmaking`-Feld im
+  GeoPackage-Export ist immer `false` (Upstream-Bug bei OpenSkiMap, siehe
+  `docs/TODO.md`), diese Layer haben also nie echte Daten gematcht und nie
+  etwas gerendert. Statt sie als permanent leere Layer im Style zu behalten,
+  komplett entfernt. `scripts/test_generate_layer_list.py` entsprechend
+  angepasst (118/118 Tests grün).
 
 ### Added
 - `scripts/generate_layer_list.py`: `ski-runs-downhill`/`ski-runs-nordic` get a `"grooming"`

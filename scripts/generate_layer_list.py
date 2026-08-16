@@ -67,12 +67,10 @@ GROUP_MAP = {
     "ski-runs-downhill-fill": "ski-runs-downhill",
     "ski-runs-downhill-casing": "ski-runs-downhill",
     "ski-runs-downhill-line": "ski-runs-downhill",
-    "ski-runs-downhill-snowmaking": "ski-runs-downhill",
     "ski-runs-downhill-labels": "ski-runs-downhill",
     "ski-runs-nordic-fill": "ski-runs-nordic",
     "ski-runs-nordic-casing": "ski-runs-nordic",
     "ski-runs-nordic-line": "ski-runs-nordic",
-    "ski-runs-nordic-snowmaking": "ski-runs-nordic",
     "ski-runs-nordic-labels": "ski-runs-nordic",
     "ski-runs-skitour-fill": "ski-runs-skitour",
     "ski-runs-skitour-line": "ski-runs-skitour",
@@ -177,10 +175,12 @@ LEGEND_SCALE_LABELS = {
 # derived from the style like every other variant here — a regression test
 # (test_generate_layer_list.py) reads the real case-expression values
 # straight out of styles/openskimap-style.json so the two can't silently
-# drift apart. "still-present-but-always-empty" caveat unchanged for
-# -downhill-snowmaking/-nordic-snowmaking (see docs/TODO.md — the
-# GeoPackage's boolean columns never export `true`, so these layers never
-# match real data). ski-runs-downhill's prior KNOWN DEVIATION from the
+# drift apart. -downhill-snowmaking/-nordic-snowmaking (v2.1.0 migration,
+# same never-matches-real-data issue — see docs/TODO.md, the GeoPackage's
+# boolean columns never export `true`) were removed from the style entirely
+# in this same follow-up rather than kept as permanently-empty layers, same
+# reasoning as the earlier -gladed removal. ski-runs-downhill's prior KNOWN
+# DEVIATION from the
 # "never in more than one variants[] entry" rule (gladed/ungroomed combo)
 # no longer applies — style_layer_ids may repeat across these three
 # grooming-state variants (deliberate: one physical layer represents three
