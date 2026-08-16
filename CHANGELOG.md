@@ -18,7 +18,8 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Standards (v2.1.0 §5.3, löst
   [geodata-plugin-standard#4](https://github.com/brikbrik94/geodata-plugin-standard/issues/4)).
 - Neue Single-Value-Achse `"snowmaking"` (Label "Beschneit") bei `ski-runs-downhill` und
-  `ski-runs-nordic` — löst die seit 2026-08-14 zurückgestellte Lücke (siehe `docs/TODO.md`).
+  `ski-runs-nordic` — löst die seit 2026-08-14 zurückgestellte Lücke (siehe
+  `docs/TODO_ARCHIVE.md`).
 - `"version"` in `dist/layer-list.json` auf `"2.1"` angehoben.
 
 ### Changed
@@ -37,6 +38,10 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   bewusste Entscheidung, keine zweite Formänderung für `website-v3` in kurzer Zeit
   (Alternative einer vollen Orthogonal-Zerlegung geprüft und verworfen, siehe
   `docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`).
+- **Bekannte Abweichung:** `ski-runs-downhill`'s `variants[]` erreicht dadurch keine volle
+  §5.3-Konformität (`-gladed`/`-ungroomed` landen je in 2 statt genau 1 `variants[]`-Eintrag) —
+  siehe neuen `docs/TODO.md`-Eintrag "`ski-runs-downhill`'s `variants[]` ist nicht
+  §5.3-konform".
 - Submodul `geodata-plugin-standard` von v2.0.0 auf v2.1.0 gebumpt.
 
 ## [Unreleased] - 2026-08-14 15:26

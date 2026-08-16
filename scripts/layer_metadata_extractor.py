@@ -5,15 +5,14 @@ Metadata extractor for MapLibre style layers.
 Extracts, per style layer, the `Part` fields defined by
 GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3 (kind, color, stroke_color, opacity,
 width, dasharray, radius, stroke_width, icon) to support automated legend
-rendering. One Part
-per style layer — no merging, no "primary layer" selection (§5.3: "Kein
-Merge mehrerer Style-Layer zu einem Part und keine Prioritäts-Auswahl
-eines 'Primär-Layers' mehr").
+rendering. One Part per style layer — no merging, no "primary layer"
+selection (§5.3: "Kein Merge mehrerer Style-Layer zu einem Part und keine
+Prioritäts-Auswahl eines 'Primär-Layers' mehr").
 
 Ported from geodata-overlays/scripts/layer_metadata_extractor.py per
-GEODATA_PLUGIN_STANDARD.md §5.8 ("einfach übernehmen"), with two
+GEODATA_PLUGIN_STANDARD.md §5.8 ("einfach übernehmen"), with three
 deviations required by openskimap's style but absent from the upstream
-original (geodata-overlays never uses either of them):
+original (geodata-overlays never uses any of them):
 
 1. extract_part_color/extract_categorized_items resolve a top-level
    `case` expression (openskimap's difficulty/status colors are nested
@@ -31,6 +30,12 @@ original (geodata-overlays never uses either of them):
    low-zoom ski-area markers. GEODATA_PLUGIN_STANDARD.md's own kind
    table documents this directly as of v2.0.0 (§5.3), unlike v1.1.0
    where it required a local deviation.
+3. `extract_part_stroke_color` does not support categorized
+   (`{mode: "scale"}`) stroke-color expressions, unlike `extract_part_color`
+   — a non-literal `circle-stroke-color` expression returns `None` rather
+   than being resolved against a scale, because no style layer in this
+   repo currently has one and there is no scale-wiring
+   (GROUP_LEGEND_SCALE-equivalent) for stroke colors.
 """
 
 DIFFICULTY_CASE_PROPERTY = "difficulty_convention"
@@ -130,7 +135,7 @@ def _resolve_part_color_expression(layer, kind):
 
 def extract_part_color(layer, kind):
     """
-    Extract a Part's `color` field per GEODATA_PLUGIN_STANDARD.md v2.0.0
+    Extract a Part's `color` field per GEODATA_PLUGIN_STANDARD.md v2.1.0
     §5.3/§5.4.
 
     Args:

@@ -377,6 +377,8 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(downhill["variants"][2]["render"], [ungroomed_part])
         self.assertEqual(downhill["variants"][3]["render"], [gladed_part, ungroomed_part])
         self.assertEqual(downhill["variants"][4]["render"], [snowmaking_part])
+        shared_kinds = [p["kind"] for p in downhill["render"]]
+        self.assertEqual(shared_kinds, ["fill", "outline", "text"])
 
     def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
         lifts = self.groups_by_key["ski-lifts"]
@@ -432,6 +434,40 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
     def test_legend_sections_still_has_three_scales_after_variant_split(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
         self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
+
+    def test_variant_part_conformance_counts_document_known_downhill_deviation(self):
+        # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3: a style layer lands in
+        # render[] or in exactly one variants[] entry, never in both, never
+        # in more than one. Counting total Part-instances across render +
+        # all variants (recursively) and comparing against len(style_layers)
+        # verifies this 1:1 invariant directly: equal counts == conformant,
+        # a surplus == some style layer's Part was duplicated into more than
+        # one variants[] entry.
+        def total_part_count(group):
+            count = len(group["render"])
+            if group["variants"]:
+                count += sum(len(v["render"]) for v in group["variants"])
+            return count
+
+        lifts = self.groups_by_key["ski-lifts"]
+        nordic = self.groups_by_key["ski-runs-nordic"]
+        downhill = self.groups_by_key["ski-runs-downhill"]
+
+        # Conformant: each of ski-lifts' and ski-runs-nordic's style layers
+        # produces exactly one Part, total.
+        self.assertEqual(total_part_count(lifts), len(lifts["style_layers"]))
+        self.assertEqual(len(lifts["style_layers"]), 7)
+        self.assertEqual(total_part_count(nordic), len(nordic["style_layers"]))
+        self.assertEqual(len(nordic["style_layers"]), 6)
+
+        # NOT conformant (known, deliberate deviation — see comment above
+        # GROUP_VARIANTS in generate_layer_list.py and docs/TODO.md):
+        # ski-runs-downhill-gladed/-ungroomed each appear in 2 variants[]
+        # entries (their own single-condition entry AND the combined
+        # "Waldabfahrt, nicht präpariert" entry), so the total is
+        # len(style_layers) + 2 duplicated Parts, not a 1:1 match.
+        self.assertEqual(len(downhill["style_layers"]), 7)
+        self.assertEqual(total_part_count(downhill), 9)
 
 
 if __name__ == "__main__":

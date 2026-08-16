@@ -18,13 +18,18 @@ GROUP_MAP below, not derived from `source-layer` equality.
 per-group dataset config or source file: `template` is set to the
 group key itself (each of our 8 groups is its own category),
 `original_file` points at the shared GeoPackage source. `source_layer`
-holds the group's first (file-order) source-layer for spec compliance;
-`source_layers` and `variants` (both plural, not in the spec) are
-locally-proposed extensions tracked as geodata-plugin-standard#4.
-`source_layers` lists every distinct source-layer the group spans, since
-collapsing to a single string would lose information for groups split
-across point/poly or line/poly PMTiles layers; `variants` describes
-mutually-exclusive style-layer combinations per MapLibre `filter`.
+holds the group's first (file-order) source-layer for spec compliance.
+`source_layers` (plural) is the sole remaining locally-proposed extension,
+not part of the standard — it lists every distinct source-layer the group
+spans, since collapsing to a single string would lose information for
+groups split across point/poly or line/poly PMTiles layers. `variants`
+(including its `axis` field) IS part of GEODATA_PLUGIN_STANDARD.md as of
+v2.1.0 §5.3 (formerly tracked as geodata-plugin-standard#4, now resolved);
+the `axis` naming/grouping and the shared-vs-variant split themselves
+remain a reference-implementation judgment call the standard explicitly
+leaves open. `variants` describes filter-based style-layer groupings per
+MapLibre `filter` — not "mutually-exclusive": the standard explicitly
+asserts no exclusivity semantics.
 """
 import json
 import os
@@ -103,7 +108,7 @@ GROUP_NAMES = {
     "ski-lifts": "Lifte",
 }
 
-# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v2.0.0
+# group key -> shared legend_scale_id (GEODATA_PLUGIN_STANDARD.md v2.1.0
 # §5.5). All four run-category groups render categorized colors from the
 # same difficulty match expression (verified byte-identical against
 # styles/openskimap-style.json — see design doc 2026-08-14), so they share
@@ -129,17 +134,28 @@ LEGEND_SCALE_LABELS = {
 # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3 (design docs: 2026-08-14
 # legend-variants for the original shared/variant split, 2026-08-16 for this
 # axis retaxonomy — geodata-plugin-standard#4, part of the standard as of
-# v2.1.0). A style-layer-id CAN appear in more than one variant's list
-# within the SAME axis when its MapLibre `filter` overlaps more than one
-# entry's defining condition (e.g. ski-runs-downhill-gladed/-ungroomed both
-# appear in the combined "Waldabfahrt, nicht präpariert" entry of the
-# grooming-terrain axis) — but never across two DIFFERENT axis entries of
-# the same group (e.g. ski-lifts-casing is only in the "status" axis's "In
-# Betrieb" entry now, not duplicated into "access" — see design doc's
-# paint-coupling investigation for why ski-lifts couldn't be split into
-# fully independent per-layer axes). Style layers not listed in ANY variant
-# here stay in the group's shared `render`. Groups not listed here at all
-# get `variants: None` and unchanged `render` behavior.
+# v2.1.0). Style layers not listed in ANY variant here stay in the group's
+# shared `render`. Groups not listed here at all get `variants: None` and
+# unchanged `render` behavior.
+#
+# §5.3 requires that a style layer land in `render` or in EXACTLY ONE
+# `variants[]` entry, never in both and never in more than one entry — the
+# standard does NOT permit cross-entry duplication. ski-lifts is fully
+# conformant (each of its 4 variant-bearing style layers appears in exactly
+# one axis entry — see the design doc's paint-coupling investigation for how
+# it was split into orthogonal "status"/"access" axes without duplication).
+# ski-runs-downhill is a KNOWN, DELIBERATE DEVIATION from this rule:
+# ski-runs-downhill-gladed and ski-runs-downhill-ungroomed each appear in
+# TWO variants[] entries — their own single-condition entry AND the combined
+# "Waldabfahrt, nicht präpariert" entry of the grooming-terrain axis. A
+# conformant orthogonal-axis decomposition (splitting into a "terrain" axis
+# and a "grooming" axis, eliminating the combined entry) was investigated
+# and found tractable — see
+# docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md's
+# "Verworfene Alternative" section — but was deliberately deferred to avoid
+# a second breaking variants[] shape change for the website-v3 consumer so
+# soon after this migration. This is accepted, documented technical debt,
+# tracked in docs/TODO.md, not a standard-permitted pattern.
 GROUP_VARIANTS = {
     "ski-runs-nordic": [
         {"axis": "grooming", "label": "Gespurt", "style_layer_ids": ["ski-runs-nordic-line"]},
@@ -163,6 +179,11 @@ GROUP_VARIANTS = {
          "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
         {"axis": "status", "label": "Sonstiger Status",
          "style_layer_ids": ["ski-lifts-line-other"]},
+        # Two Parts bundled under one axis entry per §5.3's "render:
+        # Array<Part> can have more than one Part when one filter condition
+        # covers several style layers" — not because both are simultaneously
+        # visible: -line-private is status==operating, -line-private-other
+        # is status!=operating, i.e. they are themselves status-exclusive.
         {"axis": "access", "label": "Privat",
          "style_layer_ids": ["ski-lifts-line-private", "ski-lifts-line-private-other"]},
     ],

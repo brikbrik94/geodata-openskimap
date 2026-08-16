@@ -33,6 +33,28 @@ leer (alle Punkte erledigt, siehe `docs/TODO_ARCHIVE.md`) — die erste
 Version wird als Nächstes geschnitten (Versionskonstante festlegen,
 `CHANGELOG.md` mit diesem Stand als erstem Eintrag anlegen).
 
+## `ski-runs-downhill`'s `variants[]` ist nicht §5.3-konform (Part-Duplikation über Einträge)
+
+`GEODATA_PLUGIN_STANDARD.md` v2.1.0 §5.3 verlangt, dass ein Style-Layer
+entweder in `render[]` oder in genau einem `variants[]`-Eintrag landet, nie
+in beiden und nie in mehreren. `ski-runs-downhill-gladed` und
+`ski-runs-downhill-ungroomed` (`scripts/generate_layer_list.py`,
+`GROUP_VARIANTS["ski-runs-downhill"]`) verletzen das: beide erscheinen
+jeweils in ihrem eigenen Einzel-Eintrag der `grooming-terrain`-Achse UND im
+kombinierten Eintrag "Waldabfahrt, nicht präpariert" — also je zweimal statt
+einmal. Bewusst in Kauf genommen bei der v2.1.0-Migration (siehe
+`docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`,
+Entscheidung 3 und Abschnitt "Verworfene Alternative"), um keine zweite
+Breaking-Change-Formänderung für `website-v3` so kurz nach der `ski-lifts`-
+Retaxonomie zu erzwingen.
+
+Lösung (dort bereits als technisch machbar geprüft): orthogonale Zerlegung
+in eine `"terrain"`-Achse (`"Waldabfahrt"`, aus `-gladed`) und eine separate
+`"grooming"`-Achse (`"Präpariert"`/`"Nicht präpariert"`, aus
+`-line`/`-ungroomed`) statt der aktuellen 4-Kombi-Form — macht den
+kombinierten Eintrag überflüssig und jeden Style-Layer eindeutig einem
+Eintrag zuordenbar. Siehe Design-Doc oben für die volle Analyse.
+
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 
 `scripts/ci/__pycache__/utils.cpython-313.pyc` ist im Repo eingecheckt
