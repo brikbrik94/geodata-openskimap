@@ -5,6 +5,29 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 08:21
+
+### Changed
+- **Breaking (Datenumfang):** `scripts/convert.sh` beschneidet den weltweiten OpenSkiMap-Datensatz
+  jetzt auf Skigebiete/Pisten/Lifte/Spots mit Österreich-Bezug (`country_codes LIKE '%AT%'`,
+  neue Variable `COUNTRY_WHERE`, kombiniert per `AND` in alle bestehenden `-where`-Klauseln sowie
+  neu bei den bisher ungefilterten `ski_lifts`/`ski_spots`-Extraktionen). Grund: die belieferte
+  Deployment-Umgebung nutzt eine Basiskarte, die nur Österreich + Nachbarländer abdeckt: der
+  globale Datensatz war unnötig groß und die Legende zeigte international übliche, in Österreich
+  aber kaum relevante Kategorien. `LIKE '%AT%'` erfasst reine AT-Gebiete **und**
+  grenzüberschreitende (z. B. Ischgl/Samnaun, `AT;CH`) — kein Bounding-Box-Clip, sondern ein
+  Attribut-Filter auf dem semikolon-getrennten ISO-Alpha-2-Feld. Verifiziert: 29.725 Features
+  gesamt nach Filter (vorher u. a. 214.912 `runs_linestring`, 33.119 `lifts_linestring` weltweit).
+  Konsumenten, die auf globale Abdeckung angewiesen waren, bekommen jetzt nur noch AT+Grenzgebiete.
+
+### Known Issues
+- Die Legende (Schwierigkeitsstufen, Waldabfahrt-Variante, Lift-Status, Spot-Typ) ist weiterhin
+  fest in `styles/openskimap-style.json` als `match`/`case`-Expression hinterlegt und wird **nicht**
+  automatisch durch diesen Datenfilter verkleinert — z. B. bleibt die Waldabfahrt-Variante und die
+  7-teilige Schwierigkeitsskala im Style bestehen, auch wenn sie in den jetzt AT-beschnittenen
+  Daten kaum/nicht vorkommen. Eine datengetriebene Legenden-Generierung ist als separates Vorhaben
+  in Planung (Brainstorming lief in dieser Session).
+
 ## [Unreleased] - 2026-08-16 06:27
 
 ### Added

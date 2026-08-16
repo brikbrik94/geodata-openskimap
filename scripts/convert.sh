@@ -31,13 +31,24 @@ cd "$TMP_DIR"
 
 log_info "Extrahiere Layer aus GeoPackage..."
 
+# Geografische Beschneidung: dieses Repo beliefert eine Deployment-Umgebung,
+# deren Basiskarte nur Österreich + Nachbarländer abdeckt (siehe
+# docs/ROADMAP.md-Kontext) - der weltweite OpenSkiMap-Datensatz wird auf
+# Skigebiete/Pisten/Lifte/Spots mit Österreich-Bezug beschnitten.
+# `country_codes` ist ein semikolon-getrenntes ISO-Alpha-2-Feld (z.B. "AT",
+# "AT;CH", "AT;DE") - LIKE '%AT%' erfasst reine AT-Gebiete UND
+# grenzüberschreitende (z.B. Ischgl/Samnaun AT;CH), verworfen wird nur, wo AT
+# in keinem der Codes vorkommt. Gilt für ALLE Layer unten (Gebiete, Pisten,
+# Lifte, Spots) - ein einzelner globaler Filter, kein Bounding-Box-Clip.
+COUNTRY_WHERE="country_codes LIKE '%AT%'"
+
 # Ski-Gebiete: nach 'activities' in Alpine/Nordic aufgeteilt.
 # Gemischte Gebiete (activities="downhill,nordic") landen in beiden Layern.
 # Punkt- und Polygon-Geometrie bleiben in getrennten Tippecanoe-Layern (wie vor
 # der Konsolidierung) - Mischgeometrie in einem Layer war nie beauftragt und
 # war die Ursache für zoomstufen-abhängig hüpfende Polygonkanten.
-ALPINE_AREA_WHERE="activities LIKE '%downhill%' OR activities NOT LIKE '%nordic%'"
-NORDIC_AREA_WHERE="activities LIKE '%nordic%'"
+ALPINE_AREA_WHERE="(activities LIKE '%downhill%' OR activities NOT LIKE '%nordic%') AND $COUNTRY_WHERE"
+NORDIC_AREA_WHERE="activities LIKE '%nordic%' AND $COUNTRY_WHERE"
 
 ogr2ogr -f GeoJSONSeq ski_areas_alpine_point.jsonseq "$INPUT_FILE" ski_areas_point -where "$ALPINE_AREA_WHERE"
 ogr2ogr -f GeoJSONSeq ski_areas_alpine_poly.jsonseq  "$INPUT_FILE" ski_areas_multipolygon -where "$ALPINE_AREA_WHERE"
@@ -55,10 +66,10 @@ ogr2ogr -f GeoJSONSeq ski_areas_nordic_poly.jsonseq  "$INPUT_FILE" ski_areas_mul
 # OTHER_RUN_WHERE deckt auch NULL/leeres 'uses' ab: OGR-SQL wertet
 # "NULL LIKE '%x%'" als NULL/falsy - ohne den IS-NULL-Zweig wuerden
 # Features ganz ohne uses-Wert aus allen vier Kategorien herausfallen.
-DOWNHILL_RUN_WHERE="uses LIKE '%downhill%'"
-NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND uses NOT LIKE '%downhill%'"
-SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%'"
-OTHER_RUN_WHERE="uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%')"
+DOWNHILL_RUN_WHERE="uses LIKE '%downhill%' AND $COUNTRY_WHERE"
+NORDIC_RUN_WHERE="uses LIKE '%nordic%' AND uses NOT LIKE '%downhill%' AND $COUNTRY_WHERE"
+SKITOUR_RUN_WHERE="uses LIKE '%skitour%' AND uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND $COUNTRY_WHERE"
+OTHER_RUN_WHERE="(uses IS NULL OR (uses NOT LIKE '%downhill%' AND uses NOT LIKE '%nordic%' AND uses NOT LIKE '%skitour%')) AND $COUNTRY_WHERE"
 
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_line.jsonseq "$INPUT_FILE" runs_linestring -where "$DOWNHILL_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_downhill_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$DOWNHILL_RUN_WHERE"
@@ -69,11 +80,11 @@ ogr2ogr -f GeoJSONSeq ski_runs_skitour_poly.jsonseq "$INPUT_FILE" runs_multipoly
 ogr2ogr -f GeoJSONSeq ski_runs_other_line.jsonseq "$INPUT_FILE" runs_linestring -where "$OTHER_RUN_WHERE"
 ogr2ogr -f GeoJSONSeq ski_runs_other_poly.jsonseq "$INPUT_FILE" runs_multipolygon -where "$OTHER_RUN_WHERE"
 
-# Lifte: unveraendert, ein Layer
-ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring
+# Lifte: ein Layer, keine Kategorie-Aufteilung noetig
+ogr2ogr -f GeoJSONSeq ski_lifts.jsonseq "$INPUT_FILE" lifts_linestring -where "$COUNTRY_WHERE"
 
-# Spots: neu (Liftstationen, Halfpipes, Lawinen-Checkpunkte, Kreuzungen)
-ogr2ogr -f GeoJSONSeq ski_spots.jsonseq "$INPUT_FILE" spots_point
+# Spots: Liftstationen, Halfpipes, Lawinen-Checkpunkte, Kreuzungen
+ogr2ogr -f GeoJSONSeq ski_spots.jsonseq "$INPUT_FILE" spots_point -where "$COUNTRY_WHERE"
 
 log_info "Erstelle PMTiles: $(get_rel_path "$OUTPUT_PMTILES" "$REPO_DIR")"
 
