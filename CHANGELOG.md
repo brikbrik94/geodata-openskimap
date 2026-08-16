@@ -5,6 +5,40 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 06:27
+
+### Added
+- `dist/layer-list.json`: jeder `Part` trägt jetzt `stroke_color`/`stroke_width`
+  (`scripts/layer_metadata_extractor.py`, `scripts/generate_layer_list.py`) — `null` außer bei
+  `kind: "circle"`, dort aus `circle-stroke-color`/`circle-stroke-width` (betrifft
+  `ski-areas-alpine/-nordic-circle`, `ski-spots`). Schließt die in
+  [geodata-plugin-standard#3](https://github.com/brikbrik94/geodata-plugin-standard/issues/3)
+  gemeldete Lücke, jetzt offiziell Teil des Standards (v2.1.0 §5.3).
+- `variants[]`-Einträge tragen jetzt ein `axis`-Feld (String) — jetzt offiziell Teil des
+  Standards (v2.1.0 §5.3, löst
+  [geodata-plugin-standard#4](https://github.com/brikbrik94/geodata-plugin-standard/issues/4)).
+- Neue Single-Value-Achse `"snowmaking"` (Label "Beschneit") bei `ski-runs-downhill` und
+  `ski-runs-nordic` — löst die seit 2026-08-14 zurückgestellte Lücke (siehe `docs/TODO.md`).
+- `"version"` in `dist/layer-list.json` auf `"2.1"` angehoben.
+
+### Changed
+- **Breaking:** `ski-lifts`' `variants[]` von 4 flachen Status×Zugang-Kombinations-Einträgen
+  auf 3 Einträge über 2 Achsen umgestellt — axis `"status"` ("In Betrieb"/"Sonstiger Status")
+  und axis `"access"` (Single-Value "Privat", deckt beide Statuswerte gemeinsam ab). Grund:
+  `ski-lifts-casing` (Filter testet nur `status`) landete im alten Modell fälschlich in 2 von 4
+  Einträgen; die neue Achsen-Struktur verwendet jeden der 4 realen Style-Layer genau einmal.
+  Konsumenten, die die alte 4-Kombi-Form positionell parsen (z. B. `website-v3`), müssen
+  angepasst werden.
+- `GROUP_VARIANT_EXCLUDE` (und der zugehörige Ausschluss-Schritt in
+  `_build_render_and_variants`) entfernt — beide bisherigen Einträge (Nordic-/Downhill-
+  Snowmaking) sind jetzt reguläre `"snowmaking"`-Achsen-Einträge statt eines Ausschlusses.
+- `ski-runs-downhill`/`ski-runs-nordic` behalten ihre bisherige Varianten-Form (4 bzw. 2
+  Einträge) unverändert, zusätzlich zum `axis`-Feld und dem neuen Snowmaking-Eintrag —
+  bewusste Entscheidung, keine zweite Formänderung für `website-v3` in kurzer Zeit
+  (Alternative einer vollen Orthogonal-Zerlegung geprüft und verworfen, siehe
+  `docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`).
+- Submodul `geodata-plugin-standard` von v2.0.0 auf v2.1.0 gebumpt.
+
 ## [Unreleased] - 2026-08-14 15:26
 
 ### Added

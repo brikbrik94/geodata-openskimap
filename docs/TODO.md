@@ -33,17 +33,6 @@ leer (alle Punkte erledigt, siehe `docs/TODO_ARCHIVE.md`) — die erste
 Version wird als Nächstes geschnitten (Versionskonstante festlegen,
 `CHANGELOG.md` mit diesem Stand als erstem Eintrag anlegen).
 
-## `circle-stroke-color`/`circle-stroke-width` im render-Part-Modell nachziehen
-
-Der `circle`-Kind im v2.0-`Part`-Schema hat kein Feld für `circle-stroke-color`/
-`circle-stroke-width` (betrifft `ski-areas-alpine/-nordic-circle` und
-`ski-spots` in `styles/openskimap-style.json`) — Standard-seitige Lücke,
-gemeldet als
-[geodata-plugin-standard#3](https://github.com/brikbrik94/geodata-plugin-standard/issues/3).
-Sobald der Standard dafür Felder ergänzt: `scripts/layer_metadata_extractor.py`
-(`PART_FIELDS_BY_KIND`, neue `extract_part_stroke_color`/`extract_part_stroke_width`
-o.ä.) und `scripts/generate_layer_list.py` entsprechend erweitern.
-
 ## `scripts/ci/__pycache__/*.pyc` ist versehentlich getrackt
 
 `scripts/ci/__pycache__/utils.cpython-313.pyc` ist im Repo eingecheckt
@@ -53,13 +42,3 @@ zeigt die Datei als modifiziert, sobald `python3 -m unittest` gelaufen ist),
 ohne dass echte Arbeit dahintersteckt. Entscheiden und umsetzen: Datei aus
 dem Git-Tracking entfernen (`git rm --cached`) und `__pycache__/` zum
 `.gitignore` hinzufügen.
-
-## `snowmaking`-Layer haben kein Konzept im `render`/`variants`-Schema
-
-`ski-runs-downhill-snowmaking`/`ski-runs-nordic-snowmaking` sind seit der
-`variants`-Einführung (siehe `docs/superpowers/specs/2026-08-14-legend-variants-design.md`,
-Entscheidung 3) komplett aus `render`/`variants` ausgeschlossen (`GROUP_VARIANT_EXCLUDE` in
-`scripts/generate_layer_list.py`) — sie sind ein unabhängiger Zusatz-Marker (Beschneiung), der
-mit jeder Präparierungsstufe gleichzeitig auftreten kann, passt also weder ins "geteilt (immer)"
-noch ins "Variante (genau eine von mehreren)"-Schema. Braucht ein drittes, orthogonales Konzept
-(z. B. ein optionales `overlays`-Feld), sobald dafür Bedarf entsteht.

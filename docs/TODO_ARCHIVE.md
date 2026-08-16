@@ -130,3 +130,20 @@ Erledigt am 2026-08-14: Funktion im Zuge der v2.0-Migration entfernt (siehe
 `docs/superpowers/specs/2026-08-14-render-parts-v2.0-migration-design.md`,
 Entscheidung 2) — sie verkörperte exakt das alte Primär-Layer-Modell, das die
 Migration ablöst.
+
+## `circle-stroke-color`/`circle-stroke-width` im render-Part-Modell nachziehen
+
+Erledigt am 2026-08-16: `GEODATA_PLUGIN_STANDARD.md` v2.1.0 hat die Lücke geschlossen
+([geodata-plugin-standard#3](https://github.com/brikbrik94/geodata-plugin-standard/issues/3)) —
+`scripts/layer_metadata_extractor.py` (`extract_part_stroke_color`/`extract_part_stroke_width`)
+und `scripts/generate_layer_list.py` entsprechend erweitert (Design:
+`docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`).
+
+## `snowmaking`-Layer haben kein Konzept im `render`/`variants`-Schema
+
+Erledigt am 2026-08-16: mit der `axis`-Erweiterung des `variants`-Felds
+(`GEODATA_PLUGIN_STANDARD.md` v2.1.0 §5.3,
+[geodata-plugin-standard#4](https://github.com/brikbrik94/geodata-plugin-standard/issues/4))
+lässt sich Beschneiung als eigene Single-Value-Achse `"snowmaking"` sauber abbilden —
+`GROUP_VARIANT_EXCLUDE` in `scripts/generate_layer_list.py` entfällt (Design:
+`docs/superpowers/specs/2026-08-16-layer-list-v2.1-migration-design.md`).
