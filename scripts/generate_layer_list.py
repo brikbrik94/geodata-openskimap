@@ -93,7 +93,8 @@ GROUP_MAP = {
     "ski-spots": "ski-spots",
     "ski-lifts-casing": "ski-lifts",
     "ski-lifts-line": "ski-lifts",
-    "ski-lifts-line-other": "ski-lifts",
+    "ski-lifts-line-planned": "ski-lifts",
+    "ski-lifts-line-disused": "ski-lifts",
     "ski-lifts-line-private": "ski-lifts",
     "ski-lifts-line-private-other": "ski-lifts",
     "ski-lifts-labels": "ski-lifts",
@@ -123,19 +124,26 @@ GROUP_NAMES = {
 # §5.5). All four run-category groups render categorized colors from the
 # same difficulty match expression (verified byte-identical against
 # styles/openskimap-style.json — see design doc 2026-08-14), so they share
-# one central legend. ski-lifts (status) and ski-spots (spot_type) each
-# get their own scale, newly introduced with the v2.0 migration (v1.1 only
-# had ungrouped per-group legend_items for these two).
+# one central legend. ski-spots (spot_type) gets its own scale, newly
+# introduced with the v2.0 migration (v1.1 only had ungrouped per-group
+# legend_items for it). ski-lifts had a "ski-lift-status-v1" scale here too
+# until the 2026-08-16 lift-status-icon-cleanup follow-up: each status-color
+# match was replaced by fixed per-layer colors (every lift line layer is
+# already status-filtered, so a shared multi-branch scale only produced
+# incorrect cross-contaminated legend rows - every variant row pointed at
+# the SAME unfiltered 7-item scale, e.g. "In Betrieb" incorrectly also
+# listing "Disused"/"Abandoned"). See design doc
+# 2026-08-16-lift-status-icon-cleanup-design.md, Baustein 4. No categorized
+# color remains in the ski-lifts group, so it has no GROUP_LEGEND_SCALE
+# entry at all now.
 GROUP_LEGEND_SCALE = {
     "ski-runs-downhill": "ski-difficulty-v1",
     "ski-runs-nordic": "ski-difficulty-v1",
     "ski-runs-skitour": "ski-difficulty-v1",
-    "ski-lifts": "ski-lift-status-v1",
     "ski-spots": "ski-spot-type-v1",
 }
 LEGEND_SCALE_LABELS = {
     "ski-difficulty-v1": "Schwierigkeitsgrade",
-    "ski-lift-status-v1": "Lift-Status",
     "ski-spot-type-v1": "Spot-Typ",
 }
 
@@ -151,9 +159,12 @@ LEGEND_SCALE_LABELS = {
 # §5.3 requires that a style layer land in `render` or in EXACTLY ONE
 # `variants[]` entry, never in both and never in more than one entry — the
 # standard does NOT permit cross-entry duplication. ski-lifts is fully
-# conformant (each of its 4 variant-bearing style layers appears in exactly
+# conformant (each of its 6 variant-bearing style layers appears in exactly
 # one axis entry — see the design doc's paint-coupling investigation for how
-# it was split into orthogonal "status"/"access" axes without duplication).
+# it was split into orthogonal "status"/"access" axes without duplication;
+# 2026-08-16 lift-status-icon-cleanup follow-up split "status" into three
+# tiers instead of two, see docs/superpowers/specs/
+# 2026-08-16-lift-status-icon-cleanup-design.md).
 #
 # ski-runs-downhill/ski-runs-nordic had a grooming-terrain/snowmaking
 # variants[] split here previously (v2.1.0 migration, 2026-08-14), built
@@ -313,8 +324,10 @@ GROUP_VARIANTS = {
     "ski-lifts": [
         {"axis": "status", "label": "In Betrieb",
          "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
-        {"axis": "status", "label": "Sonstiger Status",
-         "style_layer_ids": ["ski-lifts-line-other"]},
+        {"axis": "status", "label": "Geplant / Im Bau",
+         "style_layer_ids": ["ski-lifts-line-planned"]},
+        {"axis": "status", "label": "Außer Betrieb",
+         "style_layer_ids": ["ski-lifts-line-disused"]},
         # Two Parts bundled under one axis entry per §5.3's "render:
         # Array<Part> can have more than one Part when one filter condition
         # covers several style layers" — not because both are simultaneously

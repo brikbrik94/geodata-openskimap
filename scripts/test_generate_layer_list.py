@@ -305,24 +305,22 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(circle_part["stroke_color"], {"mode": "fixed", "value": "#ffffff"})
         self.assertEqual(circle_part["stroke_width"], 1)
 
-    def test_legend_sections_has_three_scales(self):
+    def test_legend_sections_has_two_scales(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-spot-type-v1"})
         self.assertEqual(sections_by_id["ski-difficulty-v1"]["label"], "Schwierigkeitsgrade")
-        self.assertEqual(sections_by_id["ski-lift-status-v1"]["label"], "Lift-Status")
         self.assertEqual(sections_by_id["ski-spot-type-v1"]["label"], "Spot-Typ")
         # Expert/Extreme dead branches removed (data never has them since the
         # difficulty remap - normalize_run_tags.py); Freeride removed from
         # the shared scale too (2026-08-16 fourth follow-up) - it's now its
         # own fixed-color "difficulty" axis row in ski-runs-downhill/
         # ski-runs-skitour instead, see comment above GROUP_VARIANTS.
+        # ski-lift-status-v1 removed entirely (2026-08-16 lift-status-icon-
+        # cleanup follow-up) - ski-lifts no longer has any categorized
+        # color, see comment above GROUP_LEGEND_SCALE.
         self.assertEqual(
             [i["label"] for i in sections_by_id["ski-difficulty-v1"]["items"]],
             ["Novice", "Easy", "Intermediate", "Advanced", "Sonstige"],
-        )
-        self.assertEqual(
-            [i["label"] for i in sections_by_id["ski-lift-status-v1"]["items"]],
-            ["Operating", "Proposed", "Construction", "Disused", "Abandoned", "Sonstige"],
         )
 
     def test_ski_runs_nordic_has_grooming_variant_rows(self):
@@ -486,30 +484,40 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         lifts = self.groups_by_key["ski-lifts"]
         self.assertEqual(
             [(v["axis"], v["label"]) for v in lifts["variants"]],
-            [("status", "In Betrieb"), ("status", "Sonstiger Status"), ("access", "Privat")],
+            [
+                ("status", "In Betrieb"),
+                ("status", "Geplant / Im Bau"),
+                ("status", "Außer Betrieb"),
+                ("access", "Privat"),
+            ],
         )
         outline_part = {
             "kind": "outline", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
             "stroke_color": None, "opacity": 1, "width": 5.0, "dasharray": None,
             "radius": None, "stroke_width": None, "icon": None,
         }
-        line_operating_public = {
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-lift-status-v1"},
+        line_operating = {
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 82%, 42%)"},
             "stroke_color": None, "opacity": 0.8, "width": 3.0, "dasharray": None,
             "radius": None, "stroke_width": None, "icon": None,
         }
-        line_other_public = {
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-lift-status-v1"},
+        line_planned = {
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(210, 70%, 45%)"},
+            "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [4, 2],
+            "radius": None, "stroke_width": None, "icon": None,
+        }
+        line_disused = {
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 53%, 42%)"},
             "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
             "radius": None, "stroke_width": None, "icon": None,
         }
         line_operating_private = {
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-lift-status-v1"},
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 82%, 42%)"},
             "stroke_color": None, "opacity": 0.8, "width": 3.0, "dasharray": [1, 2],
             "radius": None, "stroke_width": None, "icon": None,
         }
         line_other_private = {
-            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-lift-status-v1"},
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 53%, 42%)"},
             "stroke_color": None, "opacity": 0.8, "width": 1.98, "dasharray": [1, 3],
             "radius": None, "stroke_width": None, "icon": None,
         }
@@ -517,9 +525,10 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         # axis "status": casing appears exactly once (only under "In
         # Betrieb"), never duplicated into "access" — regression guard for
         # the old 4-combo shape where casing was in 2 of 4 entries.
-        self.assertEqual(lifts["variants"][0]["render"], [outline_part, line_operating_public])
-        self.assertEqual(lifts["variants"][1]["render"], [line_other_public])
-        self.assertEqual(lifts["variants"][2]["render"], [line_operating_private, line_other_private])
+        self.assertEqual(lifts["variants"][0]["render"], [outline_part, line_operating])
+        self.assertEqual(lifts["variants"][1]["render"], [line_planned])
+        self.assertEqual(lifts["variants"][2]["render"], [line_disused])
+        self.assertEqual(lifts["variants"][3]["render"], [line_operating_private, line_other_private])
 
         shared_kinds = sorted(p["kind"] for p in lifts["render"])
         self.assertEqual(shared_kinds, ["icon", "text"])
@@ -533,9 +542,9 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             self.assertIsNone(group["variants"])
             self.assertEqual(len(group["render"]), len(group["style_layers"]))
 
-    def test_legend_sections_still_has_three_scales_after_variant_split(self):
+    def test_legend_sections_still_has_two_scales_after_variant_split(self):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
-        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
+        self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-spot-type-v1"})
 
     def test_variant_part_conformance_counts(self):
         # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3: a style layer lands in
@@ -567,7 +576,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
 
         lifts = self.groups_by_key["ski-lifts"]
         self.assertEqual(total_part_count(lifts), len(lifts["style_layers"]))
-        self.assertEqual(len(lifts["style_layers"]), 7)
+        self.assertEqual(len(lifts["style_layers"]), 8)
 
         nordic = self.groups_by_key["ski-runs-nordic"]
         self.assertEqual(len(nordic["style_layers"]), 4)

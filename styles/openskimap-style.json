@@ -899,24 +899,7 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": [
-          "match",
-          [
-            "get",
-            "status"
-          ],
-          "operating",
-          "hsl(0, 82%, 42%)",
-          "proposed",
-          "hsl(0, 82%, 42%)",
-          "construction",
-          "hsl(0, 82%, 42%)",
-          "disused",
-          "hsl(0, 53%, 42%)",
-          "abandoned",
-          "hsl(0, 53%, 42%)",
-          "hsl(0, 53%, 42%)"
-        ],
+        "line-color": "hsl(0, 82%, 42%)",
         "line-width": [
           "interpolate",
           [
@@ -957,7 +940,7 @@
       ]
     },
     {
-      "id": "ski-lifts-line-other",
+      "id": "ski-lifts-line-planned",
       "type": "line",
       "source": "ski_source",
       "source-layer": "ski_lifts",
@@ -966,24 +949,70 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": [
-          "match",
+        "line-color": "hsl(210, 70%, 45%)",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.53,
+          9,
+          0.92,
+          12,
+          1.45,
+          14,
+          1.98
+        ],
+        "line-opacity": 0.8,
+        "line-dasharray": [
+          "literal",
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "filter": [
+        "all",
+        [
+          "!=",
+          [
+            "get",
+            "access"
+          ],
+          "private"
+        ],
+        [
+          "in",
           [
             "get",
             "status"
           ],
-          "operating",
-          "hsl(0, 82%, 42%)",
-          "proposed",
-          "hsl(0, 82%, 42%)",
-          "construction",
-          "hsl(0, 82%, 42%)",
-          "disused",
-          "hsl(0, 53%, 42%)",
-          "abandoned",
-          "hsl(0, 53%, 42%)",
-          "hsl(0, 53%, 42%)"
-        ],
+          [
+            "literal",
+            [
+              "proposed",
+              "construction"
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "ski-lifts-line-disused",
+      "type": "line",
+      "source": "ski_source",
+      "source-layer": "ski_lifts",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "hsl(0, 53%, 42%)",
         "line-width": [
           "interpolate",
           [
@@ -1021,12 +1050,18 @@
           "private"
         ],
         [
-          "!=",
+          "in",
           [
             "get",
             "status"
           ],
-          "operating"
+          [
+            "literal",
+            [
+              "disused",
+              "abandoned"
+            ]
+          ]
         ]
       ]
     },
@@ -1040,24 +1075,7 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": [
-          "match",
-          [
-            "get",
-            "status"
-          ],
-          "operating",
-          "hsl(0, 82%, 42%)",
-          "proposed",
-          "hsl(0, 82%, 42%)",
-          "construction",
-          "hsl(0, 82%, 42%)",
-          "disused",
-          "hsl(0, 53%, 42%)",
-          "abandoned",
-          "hsl(0, 53%, 42%)",
-          "hsl(0, 53%, 42%)"
-        ],
+        "line-color": "hsl(0, 82%, 42%)",
         "line-width": [
           "interpolate",
           [
@@ -1114,24 +1132,7 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": [
-          "match",
-          [
-            "get",
-            "status"
-          ],
-          "operating",
-          "hsl(0, 82%, 42%)",
-          "proposed",
-          "hsl(0, 82%, 42%)",
-          "construction",
-          "hsl(0, 82%, 42%)",
-          "disused",
-          "hsl(0, 53%, 42%)",
-          "abandoned",
-          "hsl(0, 53%, 42%)",
-          "hsl(0, 53%, 42%)"
-        ],
+        "line-color": "hsl(0, 53%, 42%)",
         "line-width": [
           "interpolate",
           [
