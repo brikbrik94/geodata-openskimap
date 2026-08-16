@@ -5,6 +5,24 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 21:05
+
+### Fixed
+- `assets/sprites/openskimap/sprite@2x.json`: alle 13 Icon-Einträge hatten dieselben `x`/`y`/
+  `width`/`height`-Werte wie `sprite.json` (48×48-Raster) übernommen, obwohl `sprite@2x.png`
+  bereits korrekt doppelt so groß ist (384×384, Icons darin real 96×96) und `pixelRatio: 2`
+  richtig deklariert war — nur die Koordinaten selbst waren nie verdoppelt worden. Auf jedem
+  Bildschirm mit `devicePixelRatio > 1` (praktisch jeder aktuelle Laptop/Monitor) lud MapLibre
+  entsprechend `sprite@2x.png`, schnitt aber mit den unskalierten 48×48-Boxen nur das linke obere
+  Viertel jedes echten 96×96-Icons aus — sichtbar als abgeschnittene und dazu meist auf ein
+  benachbartes Gitterfeld verrutschte Icons (deshalb der Eindruck "überall Sessellifte": mehrere
+  falsch zugeordnete Viertel-Crops landeten zufällig auf benachbarten Sessellift-Rasterfeldern).
+  Nicht durch Cache verursacht (reproduziert auch mit Hard-Refresh/privatem Fenster) und nicht
+  durch heutige Style-/Legend-Änderungen — Sprite-Dateien waren seit April unangetastet, der
+  Fehler bestand schon vorher, ist aber erst jetzt aufgefallen. Fix: alle `x`/`y`/`width`/`height`
+  in `sprite@2x.json` verdoppelt (Werte 1:1 aus `sprite.json` × 2 abgeleitet, `pixelRatio`
+  unverändert). `sprite@2x.png` selbst war bereits korrekt, keine Änderung nötig.
+
 ## [Unreleased] - 2026-08-16 19:44
 
 ### Changed

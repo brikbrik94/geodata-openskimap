@@ -1,93 +1,93 @@
 {
   "ski-cable-car": {
-    "width": 48,
-    "height": 48,
+    "width": 96,
+    "height": 96,
     "x": 0,
     "y": 0,
     "pixelRatio": 2
   },
   "ski-chairlift-1": {
-    "width": 48,
-    "height": 48,
-    "x": 48,
+    "width": 96,
+    "height": 96,
+    "x": 96,
     "y": 0,
     "pixelRatio": 2
   },
   "ski-chairlift-2": {
-    "width": 48,
-    "height": 48,
-    "x": 96,
+    "width": 96,
+    "height": 96,
+    "x": 192,
     "y": 0,
     "pixelRatio": 2
   },
   "ski-chairlift-3": {
-    "width": 48,
-    "height": 48,
-    "x": 144,
+    "width": 96,
+    "height": 96,
+    "x": 288,
     "y": 0,
     "pixelRatio": 2
   },
   "ski-chairlift-4": {
-    "width": 48,
-    "height": 48,
+    "width": 96,
+    "height": 96,
     "x": 0,
-    "y": 48,
+    "y": 96,
     "pixelRatio": 2
   },
   "ski-chairlift-6": {
-    "width": 48,
-    "height": 48,
-    "x": 48,
-    "y": 48,
+    "width": 96,
+    "height": 96,
+    "x": 96,
+    "y": 96,
     "pixelRatio": 2
   },
   "ski-chairlift-8": {
-    "width": 48,
-    "height": 48,
-    "x": 96,
-    "y": 48,
+    "width": 96,
+    "height": 96,
+    "x": 192,
+    "y": 96,
     "pixelRatio": 2
   },
   "ski-drag-lift-platter": {
-    "width": 48,
-    "height": 48,
-    "x": 144,
-    "y": 48,
+    "width": 96,
+    "height": 96,
+    "x": 288,
+    "y": 96,
     "pixelRatio": 2
   },
   "ski-drag-lift-tbar": {
-    "width": 48,
-    "height": 48,
+    "width": 96,
+    "height": 96,
     "x": 0,
-    "y": 96,
+    "y": 192,
     "pixelRatio": 2
   },
   "ski-funicular": {
-    "width": 48,
-    "height": 48,
-    "x": 48,
-    "y": 96,
+    "width": 96,
+    "height": 96,
+    "x": 96,
+    "y": 192,
     "pixelRatio": 2
   },
   "ski-gondola": {
-    "width": 48,
-    "height": 48,
-    "x": 96,
-    "y": 96,
+    "width": 96,
+    "height": 96,
+    "x": 192,
+    "y": 192,
     "pixelRatio": 2
   },
   "ski-magic-carpet": {
-    "width": 48,
-    "height": 48,
-    "x": 144,
-    "y": 96,
+    "width": 96,
+    "height": 96,
+    "x": 288,
+    "y": 192,
     "pixelRatio": 2
   },
   "ski-rope-tow": {
-    "width": 48,
-    "height": 48,
+    "width": 96,
+    "height": 96,
     "x": 0,
-    "y": 144,
+    "y": 288,
     "pixelRatio": 2
   }
 }
