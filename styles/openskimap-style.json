@@ -2195,7 +2195,7 @@
         "icon-image": "ski-gondola",
         "icon-offset": [
           0,
-          -8
+          -20
         ],
         "icon-size": 0.7,
         "icon-allow-overlap": false,
@@ -2280,7 +2280,7 @@
         ],
         "icon-offset": [
           0,
-          8
+          20
         ],
         "icon-size": 0.7,
         "icon-allow-overlap": false,

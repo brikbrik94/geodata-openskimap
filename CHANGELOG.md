@@ -30,7 +30,8 @@ Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - `styles/openskimap-style.json`: `mixed_lift` (17 Features, z. B. "Sternstein Express") bekommt
   ein Icon-Paar statt des irreführenden Default-Fallbacks `ski-gondola` — zwei neue Symbol-Layer
-  (`ski-lifts-icons-mixed-gondola`/`-mixed-chair`), per `icon-offset` senkrecht zur Linie versetzt,
+  (`ski-lifts-icons-mixed-gondola`/`-mixed-chair`), per `icon-offset` vertikal (im Bildschirmraum,
+  da `icon-rotation-alignment` weiterhin `viewport` bleibt) versetzt,
   nutzen ausschließlich bestehende Sprites (Gondel-Icon + die bestehende Occupancy-basierte
   Sessellift-Icon-Auswahl). `ski-lifts-icons` bekommt einen `lift_type != "mixed_lift"`-Filter,
   um Doppel-Icons zu vermeiden. `scripts/generate_layer_list.py`s `GROUP_VARIANTS["ski-lifts"]`
