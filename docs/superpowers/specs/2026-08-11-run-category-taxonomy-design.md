@@ -1,5 +1,12 @@
 # Design: Pisten-Kategorien (downhill/nordic/skitour/other) + Nordic-Einfärbung
 
+> **Teilweise abgelöst (2026-08-16):** die hier getroffene Entscheidung "jedes Feature bekommt
+> genau eine Kategorie nach fester Priorität, keine Duplizierung wie bei Ski-Gebieten" gilt für
+> Pisten/Loipen nicht mehr — siehe
+> `docs/superpowers/specs/2026-08-16-run-duplication-tag-normalization-legend-extractor-design.md`
+> (Baustein 1). Der Rest dieses Dokuments (Kategorien-Zuordnung selbst, Nordic-Einfärbung) bleibt
+> unverändert gültig.
+
 ## Problem
 
 `docs/TODO.md` → zwei gekoppelte Punkte:
