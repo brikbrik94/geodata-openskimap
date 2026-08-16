@@ -76,3 +76,15 @@ zeigt die Datei als modifiziert, sobald `python3 -m unittest` gelaufen ist),
 ohne dass echte Arbeit dahintersteckt. Entscheiden und umsetzen: Datei aus
 dem Git-Tracking entfernen (`git rm --cached`) und `__pycache__/` zum
 `.gitignore` hinzufügen.
+
+## Lift-Typ-Icons als eigene Legend-Zeilen (analog Grooming bei Pisten)
+
+`lift_type` hat 12 reale Werte mit je eigenem Icon (siehe
+`docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md`), aber keines davon
+taucht als eigene Legend-Zeile auf (anders als Grooming/Freeride bei Pisten). Nutzer-Entscheidung
+(2026-08-16): zurückgestellt, bis `variants[]`/`GROUP_VARIANTS`-artige Icon-Legend-Zeilen im
+`GEODATA_PLUGIN_STANDARD.md` definiert sind und auf der konsumierenden Website getestet wurde, ob
+eine so variantenreiche Icon-Legende praktikabel ist (11+ Zeilen allein für Lifte). Die einzige
+Ausnahme, die schon umgesetzt ist: `mixed_lift` bekam eine eigene `"lift_type"`-Variant-Zeile,
+weil dafür ohnehin zwei dedizierte Style-Layer nötig waren (Icon-Paar statt Einzel-Icon, siehe
+Baustein 5 im Design-Dokument) — kein Vorgriff auf die generelle Frage.

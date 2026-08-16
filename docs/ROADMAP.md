@@ -83,3 +83,13 @@ dort tatsächlich verwendet wird — Live-Vergleich nötig, siehe Methode in
 `docs/TODO_ARCHIVE.md`s Korrektur-Einträgen zu ähnlichen Recherchen).
 Punkt 2 nur angehen, falls Tile-Größe/Bandbreite sich als tatsächlicher
 Engpass herausstellt.
+
+## Zahnradbahn-Icon für `lift_type=railway`
+
+Aktuell (siehe `docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md`,
+Baustein 6) fällt `lift_type=railway` (2 Features, "Bayerische Zugspitzbahn") auf das
+Default-Icon `ski-gondola` zurück — fachlich nicht ganz treffend (eine Zahnradbahn ist keine
+Gondel), aber bei nur 2 Features kein akuter Handlungsbedarf. Für eine spätere Umsetzung: ein
+eigenes Sprite-Icon (`ski-railway` o. ä.) analog zu den bestehenden Lift-Icons in
+`assets/sprites/openskimap/sprite.json`/`sprite@2x.json` zeichnen, im `lift_type`-Icon-Match in
+`ski-lifts-icons` (`styles/openskimap-style.json`) einen `"railway"`-Zweig ergänzen.

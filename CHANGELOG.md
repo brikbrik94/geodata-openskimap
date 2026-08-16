@@ -5,6 +5,43 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-16 17:18
+
+### Changed
+- `styles/openskimap-style.json`: Lift-`status`-Färbung von einer gemeinsamen `match`-Expression
+  auf feste Filter-Layer umgestellt. Neu 3 Stufen statt 2: **In Betrieb** (`operating`,
+  unverändert `hsl(0, 82%, 42%)`), **Geplant / Im Bau** (`proposed`+`construction`, neue Farbe
+  `hsl(210, 70%, 45%)`, Dasharray `[4, 2]`), **Außer Betrieb** (`disused`+`abandoned`,
+  unverändert `hsl(0, 53%, 42%)`, Dasharray `[1, 3]`) — vorher in "Sonstiger Status"
+  zusammengeworfen. `ski-lifts-line-other` ersetzt durch `ski-lifts-line-planned`/
+  `ski-lifts-line-disused`. `ski-lifts-line-private`/`-line-private-other` bleiben bei der
+  bisherigen 2-Wege-Aufteilung (nur 1 von 2938 Lift-Features ist `private`+nicht-`operating`),
+  Farben aber ebenfalls fest statt Match. Toten `"planned"`-Match-Zweig (kommt nie in den Daten
+  vor) und `t_bar`/`j_bar`-Icon-Zweige (Daten verwenden ausschließlich `t-bar`/`j-bar`) entfernt.
+  Siehe `docs/superpowers/specs/2026-08-16-lift-status-icon-cleanup-design.md`.
+- `scripts/generate_layer_list.py`: `ski-lift-status-v1`-Legend-Scale komplett entfernt
+  (`GROUP_LEGEND_SCALE`/`LEGEND_SCALE_LABELS`) — sie hatte strukturell alle 7 Status-Match-
+  Branches ungefiltert in eine Scale gepackt, sodass z. B. die "In Betrieb"-Legend-Zeile
+  fälschlich auch auf "Disused"/"Abandoned"-Farben verwies. Jeder Lift-Layer hat jetzt eine feste
+  Farbe statt eines Matches, daher keine kategorisierte Farbe mehr in der Gruppe.
+  `GROUP_VARIANTS["ski-lifts"]`s `"status"`-Achse hat jetzt 3 statt 2 Einträge
+  (`In Betrieb`/`Geplant / Im Bau`/`Außer Betrieb`).
+
+### Added
+- `styles/openskimap-style.json`: `mixed_lift` (17 Features, z. B. "Sternstein Express") bekommt
+  ein Icon-Paar statt des irreführenden Default-Fallbacks `ski-gondola` — zwei neue Symbol-Layer
+  (`ski-lifts-icons-mixed-gondola`/`-mixed-chair`), per `icon-offset` senkrecht zur Linie versetzt,
+  nutzen ausschließlich bestehende Sprites (Gondel-Icon + die bestehende Occupancy-basierte
+  Sessellift-Icon-Auswahl). `ski-lifts-icons` bekommt einen `lift_type != "mixed_lift"`-Filter,
+  um Doppel-Icons zu vermeiden. `scripts/generate_layer_list.py`s `GROUP_VARIANTS["ski-lifts"]`
+  bekommt eine neue `"lift_type"`-Achse mit einer Zeile (`Kombibahn (Gondel + Sessellift)`) für
+  dieses Icon-Paar — kein Vorgriff auf Lift-Typ-Icons als Legend-Zeilen generell (siehe
+  `docs/TODO.md`).
+- `docs/ROADMAP.md`: Eintrag für ein eigenes `railway`-Sprite-Icon (2 Features, aktuell
+  `ski-gondola`-Fallback) — zurückgestellt.
+- `docs/TODO.md`: Eintrag für Lift-Typ-Icons als eigene Legend-Zeilen (analog Grooming bei
+  Pisten) — zurückgestellt, siehe Design-Dokument "Out of Scope".
+
 ## [Unreleased] - 2026-08-16 16:01
 
 ### Changed
