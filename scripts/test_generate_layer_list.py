@@ -250,45 +250,44 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertIsNone(icon_part["icon"])  # icon-image is a match expression, not literal
 
     def test_ski_runs_downhill_casing_is_fixed_not_scale(self):
-        # downhill has no variants[] (2026-08-16 restyling follow-up removed
-        # the filtered -gladed/-ungroomed layers that variants[] was built
-        # around — see comment above GROUP_VARIANTS), so casing and line are
-        # both plain flat render[] Parts now.
+        # -downhill-line/-connection-line are variant-only now (grooming
+        # rows — see comment above GROUP_VARIANTS), so the flat render[]
+        # only has casing/fill/snowmaking/labels left; the difficulty scale
+        # shows up in the variants' render instead (checked below).
         downhill = self.groups_by_key["ski-runs-downhill"]
-        self.assertIsNone(downhill["variants"])
+        self.assertIsNotNone(downhill["variants"])
         # -downhill-casing AND -connection-casing (merged into this group,
         # see GROUP_MAP comment) both produce fixed-white outline Parts.
         outline_parts = [p for p in downhill["render"] if p["kind"] == "outline"]
         self.assertEqual(len(outline_parts), 2)
         for part in outline_parts:
             self.assertEqual(part["color"], {"mode": "fixed", "value": "hsl(0, 0%, 100%)"})
-        # -downhill-line AND -connection-line both carry the difficulty scale.
-        scale_line_parts = [
-            p for p in downhill["render"]
-            if p["kind"] == "line" and p["color"] == {"mode": "scale", "scale_id": "ski-difficulty-v1"}
-        ]
-        self.assertEqual(len(scale_line_parts), 2)
+        # Flat render[] no longer has any scale-colored line Part - that
+        # moved into the "grooming" variants.
+        self.assertFalse(any(
+            p["kind"] == "line" and p["color"] == {"mode": "scale", "scale_id": "ski-difficulty-v1"}
+            for p in downhill["render"]
+        ))
 
     def test_ski_runs_nordic_casing_carries_difficulty_scale(self):
         # Asymmetric vs. downhill: nordic's casing (not its line) is the
         # difficulty-colored part — design doc 2026-08-14, Untersuchung Punkt 1.
-        # No variants[] (see comment above GROUP_VARIANTS) - all Parts are
-        # plain flat render[].
+        # -nordic-line is variant-only now (grooming rows — see comment
+        # above GROUP_VARIANTS), so only casing/fill/snowmaking/labels are
+        # left in flat render[].
         nordic = self.groups_by_key["ski-runs-nordic"]
-        self.assertIsNone(nordic["variants"])
+        self.assertIsNotNone(nordic["variants"])
         outline_parts = [p for p in nordic["render"] if p["kind"] == "outline"]
         self.assertEqual(len(outline_parts), 1)
         self.assertEqual(
             outline_parts[0]["color"],
             {"mode": "scale", "scale_id": "ski-difficulty-v1"},
         )
-        # -nordic-line itself (fixed white; the snowmaking line is the other
-        # "line" kind Part, checked separately below).
-        white_line_parts = [
-            p for p in nordic["render"]
-            if p["kind"] == "line" and p["color"] == {"mode": "fixed", "value": "hsl(0, 0%, 100%)"}
-        ]
-        self.assertEqual(len(white_line_parts), 1)
+        # The only remaining flat "line" kind Part is -nordic-snowmaking
+        # (fixed rgba) - -nordic-line itself moved into the variants.
+        line_parts = [p for p in nordic["render"] if p["kind"] == "line"]
+        self.assertEqual(len(line_parts), 1)
+        self.assertEqual(line_parts[0]["color"], {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"})
 
     def test_ski_spots_uses_spot_type_scale(self):
         spots = self.groups_by_key["ski-spots"]
@@ -323,50 +322,101 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             ["Operating", "Proposed", "Planned", "Construction", "Disused", "Abandoned", "Sonstige"],
         )
 
-    def test_ski_runs_nordic_has_no_variants_and_flat_snowmaking_part(self):
+    def test_ski_runs_nordic_has_grooming_variant_rows(self):
         # 2026-08-16 restyling follow-up deleted ski-runs-nordic-ungroomed
         # (grooming is now a line-dasharray case-expression on the single
-        # -nordic-line layer instead) - grooming/snowmaking variants[] axes
-        # were dropped along with it (see comment above GROUP_VARIANTS).
-        # -nordic-snowmaking is still a distinct style layer (always empty
-        # today - boolean export bug, docs/TODO.md), so it still produces
-        # its own flat render[] Part.
+        # -nordic-line layer) - the same-day second follow-up reinstated a
+        # "grooming" axis for it as hand-authored variant rows (see comment
+        # above GROUP_VARIANTS) so the legend still shows one row per
+        # grooming state. -nordic-snowmaking is still a distinct style
+        # layer (always empty today - boolean export bug, docs/TODO.md), so
+        # it still produces its own flat render[] Part, unaffected.
         nordic = self.groups_by_key["ski-runs-nordic"]
-        self.assertIsNone(nordic["variants"])
+        self.assertEqual(
+            [(v["axis"], v["label"]) for v in nordic["variants"]],
+            [("grooming", "Loipe"), ("grooming", "Loipe (Backcountry)")],
+        )
+        loipe_part = {
+            "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+            "radius": None, "stroke_width": None, "icon": None,
+        }
+        loipe_backcountry_part = dict(loipe_part, dasharray=[2, 4])
+        self.assertEqual(nordic["variants"][0]["render"], [loipe_part])
+        self.assertEqual(nordic["variants"][1]["render"], [loipe_backcountry_part])
         snowmaking_parts = [
             p for p in nordic["render"]
             if p["kind"] == "line" and p["color"] == {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"}
         ]
-        self.assertEqual(snowmaking_parts, [{
-            "kind": "line", "color": {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"},
-            "stroke_color": None, "opacity": 1, "width": 1.5, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }])
+        self.assertEqual(len(snowmaking_parts), 1)
         shared_kinds = [p["kind"] for p in nordic["render"]]
-        self.assertEqual(shared_kinds, ["fill", "outline", "line", "line", "text"])
+        self.assertEqual(shared_kinds, ["fill", "outline", "line", "text"])
 
-    def test_ski_runs_downhill_has_no_variants_and_flat_snowmaking_part(self):
+    def test_ski_runs_downhill_has_grooming_variant_rows(self):
         # Same 2026-08-16 restyling follow-up removed -downhill-gladed and
         # -downhill-ungroomed (grooming is now a line-dasharray
-        # case-expression on the single -downhill-line layer) - the
-        # grooming-terrain/snowmaking variants[] axes were dropped (see
-        # comment above GROUP_VARIANTS). This also resolves the group's
-        # former KNOWN DEVIATION from §5.3 (Parts duplicated across two
-        # variants[] entries) - there are no variants[] left to duplicate
-        # into.
+        # case-expression on the single -downhill-line/-connection-line
+        # layers) - the same-day second follow-up reinstated a "grooming"
+        # axis as hand-authored variant rows (see comment above
+        # GROUP_VARIANTS): one combined row per grooming state covering
+        # both -downhill-line and -connection-line, since they render
+        # identically and are already merged into this legend group.
         downhill = self.groups_by_key["ski-runs-downhill"]
-        self.assertIsNone(downhill["variants"])
+        self.assertEqual(
+            [(v["axis"], v["label"]) for v in downhill["variants"]],
+            [("grooming", "Piste"), ("grooming", "Piste (Backcountry)"), ("grooming", "Buckelpiste")],
+        )
+        piste_part = {
+            "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+            "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+            "radius": None, "stroke_width": None, "icon": None,
+        }
+        backcountry_part = dict(piste_part, dasharray=[3, 6])
+        mogul_part = dict(piste_part, dasharray=[1, 3])
+        self.assertEqual(downhill["variants"][0]["render"], [piste_part])
+        self.assertEqual(downhill["variants"][1]["render"], [backcountry_part])
+        self.assertEqual(downhill["variants"][2]["render"], [mogul_part])
         snowmaking_parts = [
             p for p in downhill["render"]
             if p["kind"] == "line" and p["color"] == {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"}
         ]
-        self.assertEqual(snowmaking_parts, [{
-            "kind": "line", "color": {"mode": "fixed", "value": "rgba(196, 251, 255, 0.9)"},
-            "stroke_color": None, "opacity": 1, "width": 1.5, "dasharray": None,
-            "radius": None, "stroke_width": None, "icon": None,
-        }])
+        self.assertEqual(len(snowmaking_parts), 1)
         shared_kinds = [p["kind"] for p in downhill["render"]]
-        self.assertEqual(shared_kinds, ["fill", "outline", "line", "line", "text", "outline", "line"])
+        self.assertEqual(shared_kinds, ["fill", "outline", "line", "text", "outline"])
+
+    def test_downhill_and_nordic_variant_dasharray_matches_style_case_expression(self):
+        # GROUP_VARIANTS' hand-authored dasharray values for the grooming
+        # rows (see comment above GROUP_VARIANTS) are NOT derived
+        # automatically from the style - extract_part_dasharray can't parse
+        # a case-expression's branches, only a literal 2-element array (see
+        # its docstring). This reads the real case-expression straight out
+        # of styles/openskimap-style.json so the hand-authored values and
+        # the actual style can't silently drift apart.
+        def parse_grooming_dasharray_branches(case_expr):
+            # ["case", ["==", ["get", "grooming"], value], ["literal", [a, b]], ..., fallback]
+            pairs = case_expr[1:-1]
+            branches = {}
+            for i in range(0, len(pairs), 2):
+                cond, val = pairs[i], pairs[i + 1]
+                value = cond[2]
+                branches[value] = val[1] if isinstance(val, list) and val[0] == "literal" else val
+            return branches
+
+        with open(STYLE_PATH, encoding="utf-8") as f:
+            style = json.load(f)
+        by_id = {layer["id"]: layer for layer in style["layers"]}
+
+        downhill_branches = parse_grooming_dasharray_branches(by_id["ski-runs-downhill-line"]["paint"]["line-dasharray"])
+        nordic_branches = parse_grooming_dasharray_branches(by_id["ski-runs-nordic-line"]["paint"]["line-dasharray"])
+
+        downhill_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-downhill"]}
+        self.assertEqual(downhill_variants["Buckelpiste"]["dasharray"], downhill_branches["mogul"])
+        self.assertEqual(downhill_variants["Piste (Backcountry)"]["dasharray"], downhill_branches["backcountry"])
+        self.assertIsNone(downhill_variants["Piste"]["dasharray"])
+
+        nordic_variants = {v["label"]: v["render"][0] for v in generate_layer_list.GROUP_VARIANTS["ski-runs-nordic"]}
+        self.assertEqual(nordic_variants["Loipe (Backcountry)"]["dasharray"], nordic_branches["backcountry"])
+        self.assertIsNone(nordic_variants["Loipe"]["dasharray"])
 
     def test_ski_lifts_retaxonomized_into_status_and_access_axes(self):
         lifts = self.groups_by_key["ski-lifts"]
@@ -414,10 +464,7 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         self.assertEqual(all_render_parts.count(outline_part), 1)
 
     def test_groups_without_variants_config_are_unaffected(self):
-        for key in (
-            "ski-areas-alpine", "ski-areas-nordic", "ski-spots", "ski-runs-skitour",
-            "ski-runs-downhill", "ski-runs-nordic",
-        ):
+        for key in ("ski-areas-alpine", "ski-areas-nordic", "ski-spots", "ski-runs-skitour"):
             group = self.groups_by_key[key]
             self.assertIsNone(group["variants"])
             self.assertEqual(len(group["render"]), len(group["style_layers"]))
@@ -426,20 +473,27 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
         sections_by_id = {s["id"]: s for s in self.result["legend_sections"]}
         self.assertEqual(set(sections_by_id), {"ski-difficulty-v1", "ski-lift-status-v1", "ski-spot-type-v1"})
 
-    def test_variant_part_conformance_counts_are_all_conformant(self):
+    def test_variant_part_conformance_counts(self):
         # GEODATA_PLUGIN_STANDARD.md v2.1.0 §5.3: a style layer lands in
         # render[] or in exactly one variants[] entry, never in both, never
-        # in more than one. Counting total Part-instances across render +
-        # all variants (recursively) and comparing against len(style_layers)
-        # verifies this 1:1 invariant directly: equal counts == conformant,
-        # a surplus == some style layer's Part was duplicated into more than
-        # one variants[] entry.
+        # in more than one. For ski-lifts (variants derived 1:1 from real
+        # style layers via style_layer_ids), counting total Part-instances
+        # across render + all variants and comparing against
+        # len(style_layers) verifies this directly: equal counts ==
+        # conformant.
         #
-        # ski-runs-downhill used to be a KNOWN, DELIBERATE DEVIATION here
-        # (gladed/ungroomed duplicated into two variants[] entries each) -
-        # the 2026-08-16 restyling follow-up removed those filtered layers
-        # entirely and dropped downhill/nordic from GROUP_VARIANTS (see
-        # comment above GROUP_VARIANTS), so every group is now conformant.
+        # ski-runs-downhill/ski-runs-nordic's "grooming" variants (2026-08-16
+        # second follow-up, see comment above GROUP_VARIANTS) are hand-authored
+        # literal Parts, not derived per style layer - one physical style
+        # layer (-downhill-line/-connection-line/-nordic-line) deliberately
+        # produces MULTIPLE Parts (one per grooming-state row), so the 1:1
+        # count check does not apply to these two groups. What still holds
+        # (and is what §5.3 actually cares about) is that -downhill-line/
+        # -connection-line/-nordic-line never ALSO appear in the flat
+        # render[] - they're variant-only, checked in
+        # test_ski_runs_downhill_has_grooming_variant_rows and
+        # test_ski_runs_nordic_has_grooming_variant_rows via the absence of
+        # any scale-colored/white line Part in render[].
         def total_part_count(group):
             count = len(group["render"])
             if group["variants"]:
@@ -447,15 +501,16 @@ class BuildLayerListRealStyleTests(unittest.TestCase):
             return count
 
         lifts = self.groups_by_key["ski-lifts"]
-        nordic = self.groups_by_key["ski-runs-nordic"]
-        downhill = self.groups_by_key["ski-runs-downhill"]
-
         self.assertEqual(total_part_count(lifts), len(lifts["style_layers"]))
         self.assertEqual(len(lifts["style_layers"]), 7)
-        self.assertEqual(total_part_count(nordic), len(nordic["style_layers"]))
+
+        nordic = self.groups_by_key["ski-runs-nordic"]
         self.assertEqual(len(nordic["style_layers"]), 5)
-        self.assertEqual(total_part_count(downhill), len(downhill["style_layers"]))
+        self.assertEqual(total_part_count(nordic), 6)  # 4 flat + 2 grooming rows
+
+        downhill = self.groups_by_key["ski-runs-downhill"]
         self.assertEqual(len(downhill["style_layers"]), 7)
+        self.assertEqual(total_part_count(downhill), 8)  # 5 flat + 3 grooming rows
 
 
 if __name__ == "__main__":

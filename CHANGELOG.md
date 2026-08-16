@@ -5,7 +5,25 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-08-16 15:05
+## [Unreleased] - 2026-08-16 15:28
+
+### Added
+- `scripts/generate_layer_list.py`: `ski-runs-downhill`/`ski-runs-nordic` get a `"grooming"`
+  `variants[]` axis back — 3 Zeilen für Downhill (`Piste`/`Piste (Backcountry)`/`Buckelpiste`,
+  deckt auch `ski-runs-connection-line` mit ab, da es visuell identisch rendert) und 2 Zeilen
+  für Nordic (`Loipe`/`Loipe (Backcountry)`). Anders als bei `ski-lifts` sind diese Varianten
+  NICHT aus dem Style abgeleitet, sondern hand-authored literale `Part`-Objekte
+  (`_build_render_and_variants` unterstützt jetzt einen optionalen `"render"`-Schlüssel im
+  Variant-Def, der die sonst übliche Style-Layer-Extraktion überspringt) — der Grund:
+  `extract_part_dasharray` kann `line-dasharray`-`case`-Expressions grundsätzlich nicht
+  parsen (nur ein literales 2-Element-Array), und drei Legenden-Zeilen aus demselben
+  Style-Layer über Feld-Overrides abzuleiten hätte unübersichtliche Abhängigkeiten zwischen
+  den Varianten-Einträgen erzeugt — auf Nutzerwunsch stattdessen bewusst einfach und
+  in sich geschlossen gehalten. Ein neuer Regressionstest
+  (`test_downhill_and_nordic_variant_dasharray_matches_style_case_expression`) liest die
+  echten `case`-Expression-Werte aus `styles/openskimap-style.json` und vergleicht sie gegen
+  die hand-authored Werte, damit beide nicht unbemerkt auseinanderlaufen.
+  `scripts/test_generate_layer_list.py` entsprechend angepasst (118/118 Tests grün).
 
 ### Fixed
 - `ski-runs-downhill`/`ski-runs-nordic` in `scripts/generate_layer_list.py`: `GROUP_VARIANTS`-

@@ -163,17 +163,86 @@ LEGEND_SCALE_LABELS = {
 # -nordic-ungroomed). The 2026-08-16 piste-restyling follow-up removed those
 # filtered layers entirely, consolidating grooming into a single
 # `line-dasharray` case-expression on -downhill-line/-nordic-line (mogul =
-# dotted, backcountry = dashed) — there is no longer a distinct filtered
-# style layer per grooming state to hang a variants[] entry off of, so both
-# groups were dropped from GROUP_VARIANTS (decided with the user
-# 2026-08-16): they fall back to plain flat `render` like any group with no
-# entry here, including their still-present-but-always-empty
-# -downhill-snowmaking/-nordic-snowmaking layers (see docs/TODO.md — the
+# dotted, backcountry = dashed for downhill; backcountry = dashed for
+# nordic) — briefly dropped from GROUP_VARIANTS entirely as a result (no
+# distinct filtered style layer per grooming state left to hang a
+# variants[] entry off of), then reinstated the same day (second follow-up)
+# once it became clear the legend still needs one row per grooming state
+# (a consumer can't otherwise learn that a dashed piste means backcountry
+# vs. that a dotted one means mogul). Since a single style layer's
+# case-expression can't be parsed into separate Parts automatically
+# (extract_part_dasharray only reads a literal 2-element array — see its
+# docstring), these two groups' variant Parts are hand-authored literals
+# (see _build_render_and_variants' "render" key handling) rather than
+# derived from the style like every other variant here — a regression test
+# (test_generate_layer_list.py) reads the real case-expression values
+# straight out of styles/openskimap-style.json so the two can't silently
+# drift apart. "still-present-but-always-empty" caveat unchanged for
+# -downhill-snowmaking/-nordic-snowmaking (see docs/TODO.md — the
 # GeoPackage's boolean columns never export `true`, so these layers never
-# match real data regardless of variants[] shape). This also resolves the
-# prior KNOWN DEVIATION from the "never in more than one variants[] entry"
-# rule that ski-runs-downhill's gladed/ungroomed combo previously required.
+# match real data). ski-runs-downhill's prior KNOWN DEVIATION from the
+# "never in more than one variants[] entry" rule (gladed/ungroomed combo)
+# no longer applies — style_layer_ids may repeat across these three
+# grooming-state variants (deliberate: one physical layer represents three
+# legend rows), but §5.3's actual invariant (no style layer split between
+# `render` and a variant, or landing in `render` itself) still holds, since
+# these style layers are entirely variant-only now, never in the flat
+# `render` list.
 GROUP_VARIANTS = {
+    "ski-runs-downhill": [
+        {
+            "axis": "grooming",
+            "label": "Piste",
+            "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+        {
+            "axis": "grooming",
+            "label": "Piste (Backcountry)",
+            "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [3, 6],
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+        {
+            "axis": "grooming",
+            "label": "Buckelpiste",
+            "style_layer_ids": ["ski-runs-downhill-line", "ski-runs-connection-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "scale", "scale_id": "ski-difficulty-v1"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [1, 3],
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+    ],
+    "ski-runs-nordic": [
+        {
+            "axis": "grooming",
+            "label": "Loipe",
+            "style_layer_ids": ["ski-runs-nordic-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": None,
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+        {
+            "axis": "grooming",
+            "label": "Loipe (Backcountry)",
+            "style_layer_ids": ["ski-runs-nordic-line"],
+            "render": [{
+                "kind": "line", "color": {"mode": "fixed", "value": "hsl(0, 0%, 100%)"},
+                "stroke_color": None, "opacity": 1, "width": 3.0, "dasharray": [2, 4],
+                "radius": None, "stroke_width": None, "icon": None,
+            }],
+        },
+    ],
     "ski-lifts": [
         {"axis": "status", "label": "In Betrieb",
          "style_layer_ids": ["ski-lifts-casing", "ski-lifts-line"]},
@@ -301,6 +370,22 @@ def _build_render_and_variants(group_layers, group_key, scale_items):
             behavior). Otherwise render holds only the Parts whose style
             layer is not a member of any variant, and each variants[] entry
             is {"axis": str, "label": str, "render": list[dict]}.
+
+    A variant_def's Part list is derived from the real style layer(s) named
+    in "style_layer_ids" via _build_render UNLESS the variant_def already
+    carries an explicit "render" key (a literal list[dict] of Parts) — then
+    that literal list is used as-is instead. "style_layer_ids" still
+    controls which layers get excluded from the shared render list either
+    way. The literal form exists for grooming-state rows
+    (GROUP_VARIANTS["ski-runs-downhill"/"ski-runs-nordic"], 2026-08-16
+    second follow-up): several rows point at the SAME style layer, only
+    differing in one field (dasharray) that the extractor can't read out of
+    that layer's line-dasharray case-expression at all
+    (extract_part_dasharray only handles a literal 2-element array, see its
+    docstring) — deriving would need per-field override plumbing across
+    multiple variants sharing one style_layer_id, which was deliberately
+    rejected in favor of self-contained, hand-authored Parts (simpler to
+    read, no cross-variant coupling). See the comment above GROUP_VARIANTS.
     """
     variant_defs = GROUP_VARIANTS.get(group_key)
     if not variant_defs:
@@ -317,7 +402,7 @@ def _build_render_and_variants(group_layers, group_key, scale_items):
         {
             "axis": variant_def["axis"],
             "label": variant_def["label"],
-            "render": _build_render(
+            "render": variant_def["render"] if "render" in variant_def else _build_render(
                 [layer for layer in group_layers if layer.get("id") in variant_def["style_layer_ids"]],
                 group_key,
                 scale_items,
